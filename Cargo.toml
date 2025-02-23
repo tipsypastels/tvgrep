@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ahash = { version = "0.8.11", features = ["serde"] }
 anyhow = "1.0.96"
 camino = { version = "1.1.9", features = ["serde", "serde1"] }
 clap = { version = "4.5.30", features = ["derive"] }
 dirs = "6.0.0"
 dotenvy = "0.15.7"
 futures = "0.3.31"
+indexmap = { version = "2.7.1", features = ["serde"] }
 kstring = { version = "2.0.2", features = ["arc"] }
 reqwest = "0.12.12"
 scraper = "0.22.0"

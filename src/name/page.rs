@@ -2,7 +2,7 @@ use anyhow::{Error, Result, ensure};
 use kstring::KString;
 use std::{fmt, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PageName(KString);
 
 impl FromStr for PageName {

@@ -1,4 +1,6 @@
 use crate::name::ArticleName;
+use ahash::RandomState;
+use indexmap::IndexMap;
 use std::{fmt, ops::Deref};
 
 #[derive(Debug, Default)]
@@ -51,5 +53,26 @@ impl fmt::Display for ArticleList {
         writeln!(f, "({} results)", self.len())?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ArticleMap<T>(IndexMap<ArticleName, T, RandomState>);
+
+impl<T> ArticleMap<T> {
+    pub fn new() -> Self {
+        Self(IndexMap::with_hasher(RandomState::new()))
+    }
+
+    pub fn has(&self, article: &ArticleName) -> bool {
+        self.0.get(article).is_some()
+    }
+
+    pub fn get(&self, article: &ArticleName) -> Option<&T> {
+        self.0.get(article)
+    }
+
+    pub fn insert(&mut self, article: ArticleName, value: T) {
+        self.0.insert(article, value);
     }
 }

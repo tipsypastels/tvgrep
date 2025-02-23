@@ -9,7 +9,7 @@ pub use group::GroupName;
 pub use page::PageName;
 pub use url::RelatedUrlBuilder;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ArticleName {
     pub group: GroupName,
     pub page: PageName,
