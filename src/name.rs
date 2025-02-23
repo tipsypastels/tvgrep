@@ -7,6 +7,12 @@ pub struct ArticleName {
     pub page: PageName,
 }
 
+impl ArticleName {
+    pub fn display_with_url(&self) -> ArticleNameDisplayWithUrl {
+        ArticleNameDisplayWithUrl(self)
+    }
+}
+
 impl FromStr for ArticleName {
     type Err = Infallible;
 
@@ -28,6 +34,17 @@ impl FromStr for ArticleName {
 impl fmt::Display for ArticleName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.group, self.page)
+    }
+}
+
+#[derive(Debug)]
+pub struct ArticleNameDisplayWithUrl<'a>(&'a ArticleName);
+
+impl fmt::Display for ArticleNameDisplayWithUrl<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = &self.0;
+        let url = article_url(name);
+        write!(f, "\x1B]8;;{url}\x1B\\{name}\x1B]8;;\x1B\\",)
     }
 }
 
@@ -64,3 +81,5 @@ macro_rules! name_newtype {
 }
 
 use name_newtype;
+
+use crate::url::article_url;

@@ -54,7 +54,11 @@ async fn main() -> Result<()> {
             interactive,
         } => {
             let related = crawler.related(&article, group.as_ref()).await?;
-            dbg!(related.len());
+
+            if !interactive {
+                println!("{related}");
+                return Ok(());
+            }
         }
     }
 
