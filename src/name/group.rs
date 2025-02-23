@@ -1,5 +1,6 @@
 use anyhow::{Error, Result, ensure};
 use kstring::KString;
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::{Ordering, Reverse},
     fmt,
@@ -8,7 +9,7 @@ use std::{
 
 pub const MAIN: &str = "Main";
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
 pub struct GroupName(KString);
 
 impl GroupName {

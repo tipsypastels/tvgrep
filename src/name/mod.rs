@@ -3,6 +3,8 @@ mod page;
 mod url;
 
 use anyhow::{Error, Result};
+use kstring::KString;
+use serde::{Deserialize, Deserializer};
 use std::{fmt, str::FromStr};
 
 pub use group::GroupName;
@@ -28,7 +30,8 @@ impl ArticleName {
         url::related_url(self)
     }
 
-    pub fn display_without_main_group(&self) -> impl fmt::Display {
+    #[allow(unused)]
+    pub fn display_without_main(&self) -> impl fmt::Display {
         DisplayWithoutMain(self)
     }
 
@@ -58,6 +61,14 @@ impl FromStr for ArticleName {
 impl fmt::Display for ArticleName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.group, self.page)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArticleName {
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        KString::deserialize(de)?
+            .parse()
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -98,12 +109,9 @@ mod tests {
 
     #[test]
     fn display_without_main_group() {
+        assert_eq!(an("Main/Foo").display_without_main().to_string(), "Foo");
         assert_eq!(
-            an("Main/Foo").display_without_main_group().to_string(),
-            "Foo"
-        );
-        assert_eq!(
-            an("Other/Bar").display_without_main_group().to_string(),
+            an("Other/Bar").display_without_main().to_string(),
             "Other/Bar"
         );
     }
