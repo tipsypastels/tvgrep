@@ -7,18 +7,15 @@ use reqwest::Client;
 use scraper::Selector;
 use tracing::{Span, debug, field, instrument, trace};
 
+// If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
 // TODO: Doesn't work without a group, no header.
 const LISTING_SELECTOR: &str = ".examples-header + ul > li > a";
 
-#[instrument(skip_all, fields(article = %article, group = field::Empty))]
 pub async fn crawl(
     client: &Client,
     article: &ArticleName,
     group: Option<&GroupName>,
 ) -> Result<Vec<ArticleName>> {
-    if let Some(group) = group {
-        Span::current().record("group", field::display(group));
-    }
     RelatedCrawler {
         client,
         article,
@@ -35,7 +32,12 @@ struct RelatedCrawler<'a> {
 }
 
 impl RelatedCrawler<'_> {
+    #[instrument(skip_all, fields(article = %self.article, group = field::Empty))]
     async fn crawl(self) -> Result<Vec<ArticleName>> {
+        if let Some(group) = &self.group {
+            Span::current().record("group", field::display(group));
+        }
+
         let mut out = Vec::new();
         let mut page = 1u8;
 
@@ -68,7 +70,6 @@ impl RelatedCrawler<'_> {
 
         let html = super::scrape(self.client, &url).await?;
 
-        // If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
         let selector = Selector::parse(LISTING_SELECTOR).unwrap();
         let links = html.select(&selector);
 
