@@ -1,14 +1,12 @@
 mod crawl;
-mod history;
+mod files;
 mod list;
 mod name;
-mod storage;
 
 use self::{
     crawl::Crawler,
-    history::History,
+    files::History,
     name::{ArticleName, GroupName},
-    storage::StorageDir,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -49,9 +47,9 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let crawler = Crawler::new();
+    let mut history = History::new().await?;
 
-    let storage = StorageDir::new().await?;
-    let mut history = History::new(&storage).await?;
+    dbg!(history);
 
     match cli.command {
         Command::Related {

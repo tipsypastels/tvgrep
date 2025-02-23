@@ -1,4 +1,5 @@
-use crate::{list::ArticleMap, storage::StorageDir};
+use super::verdict::Veredict;
+use crate::list::ArticleMap;
 use anyhow::Result;
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -12,19 +13,13 @@ pub struct History {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct HistoryEntry {
-    pub veredict: Veredict,
-}
-
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum Veredict {
-    Yes,
-    No,
+    pub verdict: Veredict,
 }
 
 impl History {
-    pub async fn new(storage: &StorageDir) -> Result<Self> {
-        let path = storage.file("history.json");
+    pub async fn new() -> Result<Self> {
+        let dir = super::dir().await?;
+        let path = dir.join("history.json").into_boxed_path();
         let map = read_map(&path).await.unwrap_or_default();
 
         Ok(Self { path, map })
