@@ -5,14 +5,20 @@ use crate::{
 use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Selector;
+use tracing::{Span, debug, field, instrument};
 
+// TODO: Doesn't work without a group, no header.
 const LISTING_SELECTOR: &str = ".examples-header + ul > li > a";
 
+#[instrument(skip_all, fields(article = %article, group = field::Empty))]
 pub async fn crawl(
     client: &Client,
     article: &ArticleName,
     group: Option<&GroupName>,
 ) -> Result<Vec<ArticleName>> {
+    if let Some(group) = group {
+        Span::current().record("group", field::display(group));
+    }
     RelatedCrawler {
         client,
         article,
@@ -33,15 +39,13 @@ impl RelatedCrawler<'_> {
         let mut out = Vec::new();
         let mut page = 1u8;
 
-        tracing::debug!("starting page loop");
         loop {
-            tracing::debug!(page, "starting page");
+            debug!(page, "loading page");
 
             let cur_len = out.len();
             self.crawl_page(&mut out, page).await?;
 
             if cur_len == out.len() {
-                tracing::debug!(page, "done");
                 break;
             }
             page += 1;
@@ -50,13 +54,14 @@ impl RelatedCrawler<'_> {
         Ok(out)
     }
 
+    #[instrument(skip(self, out))]
     async fn crawl_page(&self, out: &mut Vec<ArticleName>, page: u8) -> Result<()> {
-        tracing::debug!(page, "fetching");
-
         let url = article_related_url(self.article)
             .group(self.group)
             .page(page)
             .build();
+
+        debug!(url, "crawling page");
 
         let html = super::scrape(self.client, &url).await?;
 
@@ -68,7 +73,7 @@ impl RelatedCrawler<'_> {
             let url = link.attr("href").context("link has no url")?;
             let article = get_article_from_url(url).context("invalid url")?;
 
-            tracing::debug!(%article, "article");
+            debug!(%article);
             out.push(article);
         }
 

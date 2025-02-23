@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
     dotenv().ok();
 
     tracing_subscriber::registry()
-        .with(fmt::layer())
+        .with(fmt::layer().without_time())
         .with(EnvFilter::from_default_env())
         .init();
 
