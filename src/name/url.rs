@@ -19,8 +19,7 @@ pub fn related_url(article: &ArticleName) -> RelatedUrlBuilder {
 
 pub fn article_from_url(url: &str) -> Result<ArticleName> {
     ensure!(url.starts_with(REL_ARTICLE_URL_BASE));
-    let name = &url[REL_ARTICLE_URL_BASE.len()..];
-    Ok(name.parse()?)
+    url[REL_ARTICLE_URL_BASE.len()..].parse()
 }
 
 #[derive(Debug)]
