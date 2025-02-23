@@ -65,7 +65,7 @@ struct DisplayWithoutMain<'a>(&'a ArticleName);
 
 impl fmt::Display for DisplayWithoutMain<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0.group.is_default() {
+        if self.0.group.is_main() {
             write!(f, "{}", self.0.page)
         } else {
             write!(f, "{}", self.0)
@@ -87,21 +87,36 @@ impl fmt::Display for DisplayLink<'_> {
 mod tests {
     use super::*;
 
+    fn an(s: &str) -> ArticleName {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn defaults_to_main_group() {
+        assert_eq!(an("Foo").to_string(), "Main/Foo");
+    }
+
     #[test]
     fn display_without_main_group() {
         assert_eq!(
-            ArticleName::from_str("Main/Foo")
-                .unwrap()
-                .display_without_main_group()
-                .to_string(),
+            an("Main/Foo").display_without_main_group().to_string(),
             "Foo"
         );
         assert_eq!(
-            ArticleName::from_str("Other/Bar")
-                .unwrap()
-                .display_without_main_group()
-                .to_string(),
+            an("Other/Bar").display_without_main_group().to_string(),
             "Other/Bar"
         );
+    }
+
+    #[test]
+    fn main_group_sorts_first() {
+        let item = an("Foo");
+        let before = an("A_Before/Bar");
+        let after = an("Z_After/Baz");
+
+        let mut items = vec![before.clone(), item.clone(), after.clone()];
+        items.sort();
+
+        assert_eq!(items, vec![item, before, after])
     }
 }

@@ -6,20 +6,20 @@ use std::{
     str::FromStr,
 };
 
-pub const DEFAULT: &str = "Main";
+pub const MAIN: &str = "Main";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GroupName(KString);
 
 impl GroupName {
-    pub fn is_default(&self) -> bool {
-        self.0 == DEFAULT
+    pub fn is_main(&self) -> bool {
+        self.0 == MAIN
     }
 }
 
 impl Default for GroupName {
     fn default() -> Self {
-        Self(KString::from_static(DEFAULT))
+        Self(KString::from_static(MAIN))
     }
 }
 
@@ -46,8 +46,8 @@ impl PartialOrd for GroupName {
 
 impl Ord for GroupName {
     fn cmp(&self, other: &Self) -> Ordering {
-        Reverse(self.is_default())
-            .cmp(&Reverse(other.is_default()))
+        Reverse(self.is_main())
+            .cmp(&Reverse(other.is_main()))
             .then(self.0.cmp(&other.0))
     }
 }
@@ -61,9 +61,14 @@ mod tests {
     }
 
     #[test]
-    fn default_sorts_first() {
-        let mut items: Vec<GroupName> = vec![gn("A_Before"), gn(DEFAULT), gn("Z_After")];
+    fn main_sorts_first() {
+        let item = gn(MAIN);
+        let before = gn("A_Before");
+        let after = gn("Z_After");
+
+        let mut items = vec![before.clone(), item.clone(), after.clone()];
         items.sort();
-        assert_eq!(items, vec![gn(DEFAULT), gn("A_Before"), gn("Z_After")]);
+
+        assert_eq!(items, vec![item, before, after]);
     }
 }
