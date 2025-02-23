@@ -2,11 +2,11 @@ use crate::name::{ArticleName, GroupName};
 use anyhow::{Result, ensure};
 use std::fmt;
 
-const PMWIKI: &str = "https://tvtropes.org/pmwiki";
-const RELATIVE_ARTICLE_URL_BASE: &str = "/pmwiki/pmwiki.php/";
+const PMWIKI_BASE: &str = "https://tvtropes.org/pmwiki";
+const REL_ARTICLE_URL_BASE: &str = "/pmwiki/pmwiki.php/";
 
 pub fn article_url(article: &ArticleName) -> String {
-    format!("{PMWIKI}/pmwiki.php/{article}")
+    format!("{PMWIKI_BASE}/pmwiki.php/{article}")
 }
 
 pub fn article_related_url(article: &ArticleName) -> ArticleRelatedUrlBuilder {
@@ -18,8 +18,8 @@ pub fn article_related_url(article: &ArticleName) -> ArticleRelatedUrlBuilder {
 }
 
 pub fn get_article_from_url(url: &str) -> Result<ArticleName> {
-    ensure!(url.starts_with(RELATIVE_ARTICLE_URL_BASE));
-    let name = &url[RELATIVE_ARTICLE_URL_BASE.len()..];
+    ensure!(url.starts_with(REL_ARTICLE_URL_BASE));
+    let name = &url[REL_ARTICLE_URL_BASE.len()..];
     Ok(name.parse()?)
 }
 
@@ -48,7 +48,7 @@ impl<'a> ArticleRelatedUrlBuilder<'a> {
 
 impl fmt::Display for ArticleRelatedUrlBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{PMWIKI}/relatedsearch.php?term={}", self.article)?;
+        write!(f, "{PMWIKI_BASE}/relatedsearch.php?term={}", self.article)?;
         if let Some(group) = self.group {
             write!(f, "&groupname_search={group}")?;
         }
