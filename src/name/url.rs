@@ -1,4 +1,4 @@
-use crate::name::{ArticleName, GroupName};
+use super::*;
 use anyhow::{Result, ensure};
 use std::fmt;
 
@@ -9,28 +9,28 @@ pub fn article_url(article: &ArticleName) -> String {
     format!("{PMWIKI_BASE}/pmwiki.php/{article}")
 }
 
-pub fn article_related_url(article: &ArticleName) -> ArticleRelatedUrlBuilder {
-    ArticleRelatedUrlBuilder {
+pub fn related_url(article: &ArticleName) -> RelatedUrlBuilder {
+    RelatedUrlBuilder {
         article,
         group: None,
         page: None,
     }
 }
 
-pub fn get_article_from_url(url: &str) -> Result<ArticleName> {
+pub fn article_from_url(url: &str) -> Result<ArticleName> {
     ensure!(url.starts_with(REL_ARTICLE_URL_BASE));
     let name = &url[REL_ARTICLE_URL_BASE.len()..];
     Ok(name.parse()?)
 }
 
 #[derive(Debug)]
-pub struct ArticleRelatedUrlBuilder<'a> {
+pub struct RelatedUrlBuilder<'a> {
     article: &'a ArticleName,
     group: Option<&'a GroupName>,
     page: Option<u8>,
 }
 
-impl<'a> ArticleRelatedUrlBuilder<'a> {
+impl<'a> RelatedUrlBuilder<'a> {
     pub fn group(&mut self, group: Option<&'a GroupName>) -> &mut Self {
         self.group = group;
         self
@@ -46,7 +46,7 @@ impl<'a> ArticleRelatedUrlBuilder<'a> {
     }
 }
 
-impl fmt::Display for ArticleRelatedUrlBuilder<'_> {
+impl fmt::Display for RelatedUrlBuilder<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{PMWIKI_BASE}/relatedsearch.php?term={}", self.article)?;
         if let Some(group) = self.group {

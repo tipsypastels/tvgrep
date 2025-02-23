@@ -44,7 +44,7 @@ impl fmt::Display for ArticleList {
                 writeln!(f)?;
             }
 
-            writeln!(f, "\t{}", article.display_with_url())?;
+            writeln!(f, "\t{}", article.display_link())?;
         }
 
         writeln!(f)?;

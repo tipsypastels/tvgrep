@@ -1,7 +1,6 @@
 mod crawl;
 mod list;
 mod name;
-mod url;
 
 use self::{
     crawl::Crawler,

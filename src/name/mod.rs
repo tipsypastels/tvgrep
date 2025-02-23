@@ -1,0 +1,107 @@
+mod group;
+mod page;
+mod url;
+
+use anyhow::{Error, Result};
+use std::{fmt, str::FromStr};
+
+pub use group::GroupName;
+pub use page::PageName;
+pub use url::RelatedUrlBuilder;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ArticleName {
+    pub group: GroupName,
+    pub page: PageName,
+}
+
+impl ArticleName {
+    pub fn from_url(url: &str) -> Result<Self> {
+        url::article_from_url(url)
+    }
+
+    pub fn url(&self) -> String {
+        url::article_url(self)
+    }
+
+    pub fn related_url(&self) -> RelatedUrlBuilder {
+        url::related_url(self)
+    }
+
+    pub fn display_without_main_group(&self) -> impl fmt::Display {
+        DisplayWithoutMain(self)
+    }
+
+    pub fn display_link(&self) -> impl fmt::Display {
+        DisplayLink(DisplayWithoutMain(self))
+    }
+}
+
+impl FromStr for ArticleName {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if let Some((group, page)) = s.split_once('/') {
+            Ok(Self {
+                group: group.parse()?,
+                page: page.parse()?,
+            })
+        } else {
+            Ok(Self {
+                group: GroupName::default(),
+                page: s.parse()?,
+            })
+        }
+    }
+}
+
+impl fmt::Display for ArticleName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.group, self.page)
+    }
+}
+
+struct DisplayWithoutMain<'a>(&'a ArticleName);
+
+impl fmt::Display for DisplayWithoutMain<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.group.is_default() {
+            write!(f, "{}", self.0.page)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+
+struct DisplayLink<'a>(DisplayWithoutMain<'a>);
+
+impl fmt::Display for DisplayLink<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = &self.0;
+        let url = name.0.url();
+        write!(f, "\x1B]8;;{url}\x1B\\{name}\x1B]8;;\x1B\\")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_without_main_group() {
+        assert_eq!(
+            ArticleName::from_str("Main/Foo")
+                .unwrap()
+                .display_without_main_group()
+                .to_string(),
+            "Foo"
+        );
+        assert_eq!(
+            ArticleName::from_str("Other/Bar")
+                .unwrap()
+                .display_without_main_group()
+                .to_string(),
+            "Other/Bar"
+        );
+    }
+}

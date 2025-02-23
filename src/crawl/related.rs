@@ -1,7 +1,6 @@
 use crate::{
     list::ArticleList,
     name::{ArticleName, GroupName},
-    url::{article_related_url, get_article_from_url},
 };
 use anyhow::{Context, Result};
 use reqwest::Client;
@@ -62,7 +61,9 @@ impl RelatedCrawler<'_> {
 
     #[instrument(skip(self, out))]
     async fn crawl_page(&self, out: &mut ArticleList, page: u8) -> Result<()> {
-        let url = article_related_url(self.article)
+        let url = self
+            .article
+            .related_url()
             .group(self.group)
             .page(page)
             .build();
@@ -76,7 +77,7 @@ impl RelatedCrawler<'_> {
 
         for link in links {
             let url = link.attr("href").context("link has no url")?;
-            let article = get_article_from_url(url).context("invalid url")?;
+            let article = ArticleName::from_url(url).context("invalid url")?;
 
             trace!(%article);
             out.push_assume_sorted(article);
