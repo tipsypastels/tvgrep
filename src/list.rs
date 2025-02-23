@@ -1,9 +1,10 @@
 use crate::name::ArticleName;
 use ahash::RandomState;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use std::{fmt, ops::Deref};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ArticleList(Vec<ArticleName>);
 
 impl ArticleList {
@@ -56,7 +57,7 @@ impl fmt::Display for ArticleList {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ArticleMap<T>(IndexMap<ArticleName, T, RandomState>);
 
 impl<T> ArticleMap<T> {
@@ -74,5 +75,11 @@ impl<T> ArticleMap<T> {
 
     pub fn insert(&mut self, article: ArticleName, value: T) {
         self.0.insert(article, value);
+    }
+}
+
+impl<T> Default for ArticleMap<T> {
+    fn default() -> Self {
+        Self(Default::default())
     }
 }
