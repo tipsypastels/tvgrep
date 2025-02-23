@@ -5,7 +5,7 @@ use crate::{
 use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Selector;
-use tracing::{Span, debug, field, instrument};
+use tracing::{Span, debug, field, instrument, trace};
 
 // TODO: Doesn't work without a group, no header.
 const LISTING_SELECTOR: &str = ".examples-header + ul > li > a";
@@ -45,7 +45,10 @@ impl RelatedCrawler<'_> {
             let cur_len = out.len();
             self.crawl_page(&mut out, page).await?;
 
-            if cur_len == out.len() {
+            let addl_len = out.len() - cur_len;
+            debug!(page, len = addl_len, "loaded");
+
+            if addl_len == 0 {
                 break;
             }
             page += 1;
@@ -73,7 +76,7 @@ impl RelatedCrawler<'_> {
             let url = link.attr("href").context("link has no url")?;
             let article = get_article_from_url(url).context("invalid url")?;
 
-            debug!(%article);
+            trace!(%article);
             out.push(article);
         }
 
