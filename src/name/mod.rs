@@ -4,7 +4,7 @@ mod url;
 
 use anyhow::{Error, Result};
 use kstring::KString;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, str::FromStr};
 
 pub use group::GroupName;
@@ -69,6 +69,12 @@ impl<'de> Deserialize<'de> for ArticleName {
         KString::deserialize(de)?
             .parse()
             .map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for ArticleName {
+    fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+        ser.serialize_str(&self.to_string())
     }
 }
 
