@@ -1,6 +1,9 @@
 mod related;
 
-use crate::name::{ArticleName, GroupName};
+use crate::{
+    list::ArticleList,
+    name::{ArticleName, GroupName},
+};
 use anyhow::Result;
 use reqwest::Client;
 use scraper::Html;
@@ -21,7 +24,7 @@ impl Crawler {
         &self,
         article: &ArticleName,
         group: Option<&GroupName>,
-    ) -> Result<Vec<ArticleName>> {
+    ) -> Result<ArticleList> {
         related::crawl(&self.client, article, group).await
     }
 }

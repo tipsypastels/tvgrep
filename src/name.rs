@@ -1,7 +1,7 @@
 use kstring::KString;
 use std::{convert::Infallible, fmt, str::FromStr};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArticleName {
     pub group: GroupName,
     pub page: PageName,
@@ -31,6 +31,7 @@ impl fmt::Display for ArticleName {
     }
 }
 
+// TODO: Should main sort first?
 name_newtype!(GroupName);
 
 impl Default for GroupName {
@@ -43,7 +44,7 @@ name_newtype!(PageName);
 
 macro_rules! name_newtype {
     ($name:ident) => {
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
         pub struct $name(KString);
 
         impl FromStr for $name {

@@ -1,4 +1,5 @@
 use crate::{
+    list::ArticleList,
     name::{ArticleName, GroupName},
     url::{article_related_url, get_article_from_url},
 };
@@ -15,7 +16,7 @@ pub async fn crawl(
     client: &Client,
     article: &ArticleName,
     group: Option<&GroupName>,
-) -> Result<Vec<ArticleName>> {
+) -> Result<ArticleList> {
     RelatedCrawler {
         client,
         article,
@@ -33,12 +34,12 @@ struct RelatedCrawler<'a> {
 
 impl RelatedCrawler<'_> {
     #[instrument(skip_all, fields(article = %self.article, group = field::Empty))]
-    async fn crawl(self) -> Result<Vec<ArticleName>> {
+    async fn crawl(self) -> Result<ArticleList> {
         if let Some(group) = &self.group {
             Span::current().record("group", field::display(group));
         }
 
-        let mut out = Vec::new();
+        let mut out = ArticleList::new();
         let mut page = 1u8;
 
         loop {
@@ -60,7 +61,7 @@ impl RelatedCrawler<'_> {
     }
 
     #[instrument(skip(self, out))]
-    async fn crawl_page(&self, out: &mut Vec<ArticleName>, page: u8) -> Result<()> {
+    async fn crawl_page(&self, out: &mut ArticleList, page: u8) -> Result<()> {
         let url = article_related_url(self.article)
             .group(self.group)
             .page(page)
@@ -78,7 +79,7 @@ impl RelatedCrawler<'_> {
             let article = get_article_from_url(url).context("invalid url")?;
 
             trace!(%article);
-            out.push(article);
+            out.push_assume_sorted(article);
         }
 
         Ok(())
