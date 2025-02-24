@@ -76,15 +76,16 @@ async fn main() -> Result<()> {
             }
         }
         Command::Remember { article, verdict } => {
+            let article_link = article.display_link();
             match history.insert(article.clone(), verdict) {
                 Some(prev) if prev == verdict => {
-                    println!("Article {article} already has verdict {verdict}, nothing to do.");
+                    println!("Article {article_link} already has verdict {verdict}, nothing to do.");
                 }
                 Some(_) => {
-                    println!("Article {article} verdict changed to {verdict}.")
+                    println!("Article {article_link} verdict changed to {verdict}.")
                 }
                 None => {
-                    println!("Article {article} verdict set to {verdict}.");
+                    println!("Article {article_link} verdict set to {verdict}.");
                 }
             }
             history.flush().await?;

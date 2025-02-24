@@ -1,4 +1,5 @@
 use anyhow::{Error, Result, anyhow};
+use console::style;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
@@ -26,8 +27,8 @@ impl FromStr for Verdict {
 impl fmt::Display for Verdict {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Yes => write!(f, "'YES'"),
-            Self::No => write!(f, "'NO'"),
+            Self::Yes => write!(f, "{}", style("yes").green()),
+            Self::No => write!(f, "{}", style("no").red()),
         }
     }
 }
