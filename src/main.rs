@@ -4,12 +4,12 @@ mod files;
 mod list;
 mod name;
 mod print;
-mod prompt;
 mod queue;
 mod term;
 
 use self::{
     crawl::Crawler,
+    data::ArticleData,
     files::{History, Verdict},
     name::{ArticleName, GroupName},
     print::Printer,
@@ -17,6 +17,7 @@ use self::{
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use dotenvy::dotenv;
+use std::ops::ControlFlow;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[derive(Debug, Parser)]
@@ -80,7 +81,29 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
 
-            prompt::verdicts(iter, &crawler, &history).await?;
+            queue::make(
+                iter,
+                async |article| crawler.article(article).await,
+                async |article, data: ArticleData| {
+                    println!("{data}");
+                    match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
+                        "Yes" => {
+                            history.insert(article.clone(), Verdict::Yes);
+                        }
+                        "No" => {
+                            history.insert(article.clone(), Verdict::No);
+                        }
+                        "Quit" => {
+                            tracing::debug!("quitting");
+                            return Ok(ControlFlow::Break(()));
+                        }
+                        _ => {}
+                    }
+                    Ok(ControlFlow::Continue(()))
+                },
+            )
+            .await?;
+
             history.flush().await?;
         }
         Command::Remember { article, verdict } => {

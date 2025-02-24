@@ -1,28 +1,26 @@
 use anyhow::Result;
 use futures::future::maybe_done;
 use std::{fmt, ops::ControlFlow, sync::Arc};
-use tokio::sync::Mutex;
 
-pub async fn start<'a, T, U, I, Rf, Df>(iter: I, download_func: Df, run_func: Rf) -> Result<()>
+pub async fn make<'a, T, U, I, Rf, Df>(iter: I, download_func: Df, run_func: Rf) -> Result<()>
 where
     T: fmt::Debug + 'a,
     I: Iterator<Item = &'a T>,
     Df: AsyncFn(&'a T) -> Result<U>,
-    Rf: AsyncFnMut(&'a T, U) -> Result<ControlFlow<()>>,
+    Rf: AsyncFn(&'a T, U) -> Result<ControlFlow<()>>,
 {
-    let run_func_lock = Arc::new(Mutex::new(run_func));
+    let run_func = Arc::new(run_func);
     let mut iter = iter
         .map(|item| (item, Box::pin(maybe_done(download_func(item)))))
         .peekable();
 
     while let Some((item, mut future)) = iter.next() {
-        let run_func_lock = run_func_lock.clone();
+        let run_func = run_func.clone();
         let run_current = async move {
             tracing::debug!("late-downloading {item:?}");
             let () = future.as_mut().await;
             let data = future.as_mut().take_output().unwrap()?;
 
-            let mut run_func = run_func_lock.lock().await;
             run_func(item, data).await
         };
 

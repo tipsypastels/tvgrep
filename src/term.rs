@@ -1,4 +1,7 @@
+use anyhow::Result;
+use dialoguer::Select;
 use std::fmt::{self, Display};
+use tokio::task::spawn_blocking;
 
 pub fn link<N: Display, U: Display>(name: N, url: U) -> impl Display {
     struct Link<N, U>(N, U);
@@ -8,4 +11,8 @@ pub fn link<N: Display, U: Display>(name: N, url: U) -> impl Display {
         }
     }
     Link(name, url)
+}
+
+pub async fn prompt(choices: &'static [&'static str]) -> Result<&'static str> {
+    Ok(choices[spawn_blocking(|| Select::new().items(choices).default(0).interact()).await??])
 }
