@@ -32,7 +32,10 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
 
 // TODO: Some summaries may not be in p tags.
 fn get_summary(main: ElementRef) -> String {
+    const LIMIT_LEN: usize = 2000;
+
     let mut out = String::new();
+
     for child in main.children() {
         let Some(element_ref) = ElementRef::wrap(child) else {
             continue;
@@ -50,6 +53,10 @@ fn get_summary(main: ElementRef) -> String {
 
                 if has_text {
                     out.push_str("\n\n");
+                }
+
+                if out.len() > LIMIT_LEN {
+                    break;
                 }
             }
             _ => {}
