@@ -1,4 +1,4 @@
-use anyhow::{Error, Result, bail};
+use anyhow::{Error, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -13,10 +13,12 @@ impl FromStr for Veredict {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        Ok(match s {
-            "yes" => Self::Yes,
-            "no" => Self::No,
-            _ => bail!("unexpected verdict '{s}'"),
-        })
+        if s.eq_ignore_ascii_case("yes") {
+            Ok(Self::Yes)
+        } else if s.eq_ignore_ascii_case("no") {
+            Ok(Self::No)
+        } else {
+            Err(anyhow!("unexpected verdict '{s}'"))
+        }
     }
 }
