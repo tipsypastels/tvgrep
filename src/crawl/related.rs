@@ -5,11 +5,13 @@ use crate::{
 use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Selector;
+use std::sync::LazyLock;
 use tracing::{Span, debug, field, instrument, trace};
 
-// If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
-// TODO: Doesn't work without a group, no header.
-const LISTING_SELECTOR: &str = ".examples-header + ul > li > a";
+// // If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
+// // TODO: Doesn't work without a group, no header.
+static LISTING_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(".examples-header + ul > li > a").unwrap());
 
 pub async fn crawl(
     client: &Client,
@@ -71,9 +73,7 @@ impl RelatedCrawler<'_> {
         debug!(url, "crawling listing");
 
         let html = super::scrape(self.client, &url).await?;
-
-        let selector = Selector::parse(LISTING_SELECTOR).unwrap();
-        let links = html.select(&selector);
+        let links = html.select(&LISTING_SELECTOR);
 
         for link in links {
             let url = link.attr("href").context("link has no url")?;
