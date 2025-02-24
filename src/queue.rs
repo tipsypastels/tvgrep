@@ -1,6 +1,6 @@
 use anyhow::Result;
 use futures::future::maybe_done;
-use parking_lot::Mutex;
+use tokio::sync::Mutex;
 use std::{fmt, sync::Arc};
 
 pub async fn start<'a, T, U, I, RF, DF>(iter: I, run_func: RF, download_func: DF) -> Result<()>
@@ -22,7 +22,7 @@ where
             let () = future.as_mut().await;
             let data = future.as_mut().take_output().unwrap()?;
 
-            let mut run_func = run_func_lock.lock();
+            let mut run_func = run_func_lock.lock().await;
             run_func(item, data).await
         };
 
