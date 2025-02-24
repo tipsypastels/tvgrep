@@ -3,17 +3,17 @@ mod files;
 mod list;
 mod name;
 mod print;
+mod prompt;
 mod queue;
 
 use self::{
-    crawl::{ArticleCrawledData, Crawler},
+    crawl::Crawler,
     files::{History, Verdict},
     name::{ArticleName, GroupName},
     print::Printer,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use dialoguer::Select;
 use dotenvy::dotenv;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
@@ -46,10 +46,6 @@ enum Command {
         #[arg()]
         verdict: Verdict,
     },
-    Test {
-        #[arg()]
-        article: ArticleName,
-    },
 }
 
 #[tokio::main]
@@ -63,7 +59,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let crawler = Crawler::new();
-    let mut history = History::new().await?;
+    let history = History::new().await?;
 
     match cli.command {
         Command::Related {
@@ -76,32 +72,11 @@ async fn main() -> Result<()> {
 
             if !interactive {
                 Printer::new(iter).unfiltered_len(related.len()).print();
-
                 return Ok(());
             }
 
-            queue::start(
-                iter,
-                async |article| crawler.article(article).await,
-                async |_, data: ArticleCrawledData| {
-                    println!("{}\n{}", data.title, data.summary);
-                    let choice = tokio::task::spawn_blocking(|| {
-                        let choices = ["Yes", "No", "Skip", "Quit"];
-                        let choice = Select::new()
-                            .with_prompt("Choose")
-                            .items(&choices)
-                            .default(0)
-                            .interact()?;
-
-                        anyhow::Ok(choice)
-                    })
-                    .await??;
-
-                    tracing::info!("chose {choice}");
-                    Ok(())
-                },
-            )
-            .await?;
+            prompt::verdicts(iter, &crawler, &history).await?;
+            history.flush().await?;
         }
         Command::Remember { article, verdict } => {
             let article_link = article.display_link();
@@ -119,10 +94,6 @@ async fn main() -> Result<()> {
                 }
             }
             history.flush().await?;
-        }
-        Command::Test { article } => {
-            let article_data = crawler.article(&article).await?;
-            dbg!(article_data);
         }
     }
 

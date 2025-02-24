@@ -2013,6 +2013,7 @@ dependencies = [
  "futures",
  "indexmap",
  "kstring",
+ "parking_lot",
  "reqwest",
  "scraper",
  "serde",

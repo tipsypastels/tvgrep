@@ -2,13 +2,14 @@ use super::verdict::Verdict;
 use crate::{list::ArticleMap, name::ArticleName};
 use anyhow::{Context, Result};
 use camino::Utf8Path;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 #[derive(Debug)]
 pub struct History {
     path: Box<Utf8Path>,
-    map: ArticleMap<HistoryEntry>,
+    map: Mutex<ArticleMap<HistoryEntry>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -21,16 +22,18 @@ impl History {
         let dir = super::dir().await?;
         let path = dir.join("history.json").into_boxed_path();
         let map = read_map(&path).await.unwrap_or_default();
+        let map = Mutex::new(map);
 
         Ok(Self { path, map })
     }
 
     pub fn has(&self, article: &ArticleName) -> bool {
-        self.map.has(article)
+        self.map.lock().has(article)
     }
 
-    pub fn insert(&mut self, article: ArticleName, verdict: Verdict) -> Option<Verdict> {
+    pub fn insert(&self, article: ArticleName, verdict: Verdict) -> Option<Verdict> {
         self.map
+            .lock()
             .insert(article, HistoryEntry { verdict })
             .map(|h| h.verdict)
     }
@@ -38,7 +41,11 @@ impl History {
     pub async fn flush(&self) -> Result<()> {
         tracing::debug!("flushing history");
 
-        let text = serde_json::to_string(&self.map).context("failed to serialize history")?;
+        let text = {
+            let map = &*self.map.lock();
+            serde_json::to_string(map).context("failed to serialize history")?
+        };
+
         fs::write(self.path.as_ref(), text)
             .await
             .context("failed to write history")
