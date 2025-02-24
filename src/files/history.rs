@@ -36,6 +36,8 @@ impl History {
     }
 
     pub async fn flush(&self) -> Result<()> {
+        tracing::debug!("flushing history");
+
         let text = serde_json::to_string(&self.map).context("failed to serialize history")?;
         fs::write(self.path.as_ref(), text)
             .await
