@@ -1,4 +1,4 @@
-use crate::name::ArticleName;
+use crate::{data::ArticleData, name::ArticleName};
 use anyhow::Result;
 use kstring::KString;
 use reqwest::Client;
@@ -7,14 +7,8 @@ use scraper::{ElementRef, Selector};
 const TITLE_SELECTOR: &str = "h1.entry-title";
 const MAIN_SELECTOR: &str = "#main-article";
 
-#[derive(Debug)]
-pub struct ArticleCrawledData {
-    pub title: KString,
-    pub summary: KString,
-}
-
 #[tracing::instrument(skip(client))]
-pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleCrawledData> {
+pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData> {
     let url = article.url();
 
     tracing::debug!(url, "crawling article");
@@ -29,7 +23,8 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleCraw
     let main = html.select(&main_selector).next().unwrap();
     let summary = get_summary(main);
 
-    Ok(ArticleCrawledData {
+    Ok(ArticleData {
+        name: article.clone(),
         title: KString::from_ref(title),
         summary: KString::from_string(summary),
     })

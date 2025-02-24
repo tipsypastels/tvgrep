@@ -1,10 +1,12 @@
 mod crawl;
+mod data;
 mod files;
 mod list;
 mod name;
 mod print;
 mod prompt;
 mod queue;
+mod term;
 
 use self::{
     crawl::Crawler,

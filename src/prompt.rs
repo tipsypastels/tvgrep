@@ -1,5 +1,6 @@
 use crate::{
-    crawl::{ArticleCrawledData, Crawler},
+    crawl::Crawler,
+    data::ArticleData,
     files::{History, Verdict},
     name::ArticleName,
     queue,
@@ -16,8 +17,8 @@ where
     queue::start(
         iter,
         async |article| crawler.article(article).await,
-        async |article, data: ArticleCrawledData| {
-            println!("{}\n{}", data.title, data.summary);
+        async |article, data: ArticleData| {
+            println!("{}", data);
             match get_choice().await? {
                 Choice::Yes => {
                     history.insert(article.clone(), Verdict::Yes);

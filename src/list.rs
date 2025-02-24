@@ -36,6 +36,7 @@ impl Deref for ArticleList {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ArticleMap<T>(IndexMap<ArticleName, T, RandomState>);
 
+#[allow(unused)]
 impl<T> ArticleMap<T> {
     pub fn new() -> Self {
         Self(IndexMap::with_hasher(RandomState::new()))

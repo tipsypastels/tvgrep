@@ -95,8 +95,8 @@ struct DisplayLink<'a>(DisplayWithoutMain<'a>);
 impl fmt::Display for DisplayLink<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = &self.0;
-        let url = name.0.url();
-        write!(f, "\x1B]8;;{url}\x1B\\{name}\x1B]8;;\x1B\\")
+        let url = &name.0.url();
+        write!(f, "{}", crate::term::link(name, url))
     }
 }
 
