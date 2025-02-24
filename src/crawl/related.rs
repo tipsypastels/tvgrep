@@ -68,7 +68,7 @@ impl RelatedCrawler<'_> {
             .page(page)
             .build();
 
-        debug!(url, "crawling page");
+        debug!(url, "crawling listing");
 
         let html = super::scrape(self.client, &url).await?;
 

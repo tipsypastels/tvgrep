@@ -44,6 +44,10 @@ enum Command {
         #[arg()]
         verdict: Verdict,
     },
+    Test {
+        #[arg()]
+        article: ArticleName,
+    },
 }
 
 #[tokio::main]
@@ -79,7 +83,9 @@ async fn main() -> Result<()> {
             let article_link = article.display_link();
             match history.insert(article.clone(), verdict) {
                 Some(prev) if prev == verdict => {
-                    println!("Article {article_link} already has verdict {verdict}, nothing to do.");
+                    println!(
+                        "Article {article_link} already has verdict {verdict}, nothing to do."
+                    );
                 }
                 Some(_) => {
                     println!("Article {article_link} verdict changed to {verdict}.")
@@ -89,6 +95,10 @@ async fn main() -> Result<()> {
                 }
             }
             history.flush().await?;
+        }
+        Command::Test { article } => {
+            let article_data = crawler.article(&article).await?;
+            dbg!(article_data);
         }
     }
 

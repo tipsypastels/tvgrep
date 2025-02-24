@@ -1,3 +1,4 @@
+mod article;
 mod related;
 
 use crate::{
@@ -7,6 +8,8 @@ use crate::{
 use anyhow::Result;
 use reqwest::Client;
 use scraper::Html;
+
+pub use article::ArticleCrawledData;
 
 #[derive(Debug)]
 pub struct Crawler {
@@ -18,6 +21,10 @@ impl Crawler {
         Self {
             client: Client::new(),
         }
+    }
+
+    pub async fn article(&self, article: &ArticleName) -> Result<ArticleCrawledData> {
+        article::crawl(&self.client, article).await
     }
 
     pub async fn related(
