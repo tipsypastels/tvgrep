@@ -10,6 +10,7 @@ use tokio::fs;
 pub struct History {
     path: Box<Utf8Path>,
     map: Mutex<ArticleMap<HistoryEntry>>,
+    dry_run: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -18,13 +19,13 @@ pub struct HistoryEntry {
 }
 
 impl History {
-    pub async fn new() -> Result<Self> {
+    pub async fn new(dry_run: bool) -> Result<Self> {
         let dir = super::dir().await?;
         let path = dir.join("history.json").into_boxed_path();
         let map = read_map(&path).await.unwrap_or_default();
         let map = Mutex::new(map);
 
-        Ok(Self { path, map })
+        Ok(Self { path, map, dry_run })
     }
 
     pub fn has(&self, article: &ArticleName) -> bool {
@@ -39,6 +40,11 @@ impl History {
     }
 
     pub async fn flush(&self) -> Result<()> {
+        if self.dry_run {
+            tracing::debug!("not flushing history (dry run)");
+            return Ok(());
+        }
+
         tracing::debug!("flushing history");
 
         let text = {

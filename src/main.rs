@@ -23,6 +23,9 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 struct Cli {
     #[command(subcommand)]
     command: Command,
+
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -61,7 +64,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let crawler = Crawler::new();
-    let history = History::new().await?;
+    let history = History::new(cli.dry_run).await?;
 
     match cli.command {
         Command::Related {
