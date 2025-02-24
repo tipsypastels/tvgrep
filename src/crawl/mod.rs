@@ -6,7 +6,7 @@ use crate::{
     list::ArticleList,
     name::{ArticleName, GroupName},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Html;
 
@@ -23,7 +23,9 @@ impl Crawler {
     }
 
     pub async fn article(&self, article: &ArticleName) -> Result<ArticleData> {
-        article::crawl(&self.client, article).await
+        article::crawl(&self.client, article)
+            .await
+            .context("article crawl error")
     }
 
     pub async fn related(
@@ -31,7 +33,9 @@ impl Crawler {
         article: &ArticleName,
         group: Option<&GroupName>,
     ) -> Result<ArticleList> {
-        related::crawl(&self.client, article, group).await
+        related::crawl(&self.client, article, group)
+            .await
+            .context("related crawl error")
     }
 }
 
