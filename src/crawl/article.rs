@@ -1,11 +1,12 @@
 use crate::{data::ArticleData, name::ArticleName};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use kstring::KString;
 use reqwest::Client;
-use scraper::{ElementRef, Selector};
+use scraper::{ElementRef, Html, Selector};
+use std::sync::LazyLock;
 
-const TITLE_SELECTOR: &str = "h1.entry-title";
-const MAIN_SELECTOR: &str = "#main-article";
+static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-article").unwrap());
+static TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("h1.entry-title").unwrap());
 
 #[tracing::instrument(skip(client))]
 pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData> {
@@ -14,13 +15,9 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
     tracing::debug!(url, "crawling article");
 
     let html = super::scrape(client, &url).await?;
+    let main = html.select(&MAIN_SEL).next().context("no main")?;
 
-    let title_selector = Selector::parse(TITLE_SELECTOR).unwrap();
-    let title_node = html.select(&title_selector).next().unwrap();
-    let title = title_node.text().next().unwrap().trim();
-
-    let main_selector = Selector::parse(MAIN_SELECTOR).unwrap();
-    let main = html.select(&main_selector).next().unwrap();
+    let title = get_title(&html)?;
     let summary = get_summary(main);
 
     Ok(ArticleData {
@@ -28,6 +25,19 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
         title: KString::from_ref(title),
         summary: KString::from_string(summary),
     })
+}
+
+fn get_title(html: &Html) -> Result<&str> {
+    html.select(&TITLE_SEL)
+        .next()
+        .context("no title")?
+        .text()
+        .filter_map(|s| {
+            let s = s.trim();
+            (!s.is_empty()).then_some(s)
+        })
+        .next()
+        .context("empty title")
 }
 
 // TODO: Some summaries may not be in p tags.
