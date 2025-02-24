@@ -10,7 +10,7 @@ pub struct Printer<I> {
 impl<'a, I, P> Printer<I>
 where
     I: Iterator<Item = &'a P>,
-    P: PrintableArticleEntry + 'a,
+    P: PrintArticleEntry + 'a,
 {
     pub fn new(iter: I) -> Self {
         Self {
@@ -54,12 +54,12 @@ where
     }
 }
 
-pub trait PrintableArticleEntry {
+pub trait PrintArticleEntry {
     fn group(&self) -> &GroupName;
     fn display(&self) -> impl Display;
 }
 
-impl PrintableArticleEntry for ArticleName {
+impl PrintArticleEntry for ArticleName {
     fn group(&self) -> &GroupName {
         &self.group
     }
@@ -69,7 +69,7 @@ impl PrintableArticleEntry for ArticleName {
     }
 }
 
-impl<T> PrintableArticleEntry for (ArticleName, T)
+impl<T> PrintArticleEntry for (ArticleName, T)
 where
     T: Display,
 {
@@ -84,7 +84,7 @@ where
             T: Display,
         {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(f, "{} ({})", self.0, self.1)
+                write!(f, "{} ({})", self.0.display_link(), self.1)
             }
         }
         TupleDisplay(&self.0, &self.1)
