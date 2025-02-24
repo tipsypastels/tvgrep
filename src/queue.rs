@@ -1,14 +1,14 @@
 use anyhow::Result;
 use futures::future::maybe_done;
-use tokio::sync::Mutex;
 use std::{fmt, sync::Arc};
+use tokio::sync::Mutex;
 
-pub async fn start<'a, T, U, I, RF, DF>(iter: I, run_func: RF, download_func: DF) -> Result<()>
+pub async fn start<'a, T, U, I, Rf, Df>(iter: I, download_func: Df, run_func: Rf) -> Result<()>
 where
     T: fmt::Debug + 'a,
     I: Iterator<Item = &'a T>,
-    RF: AsyncFnMut(&'a T, U) -> Result<()>,
-    DF: AsyncFn(&'a T) -> Result<U>,
+    Df: AsyncFn(&'a T) -> Result<U>,
+    Rf: AsyncFnMut(&'a T, U) -> Result<()>,
 {
     let run_func_lock = Arc::new(Mutex::new(run_func));
     let mut iter = iter

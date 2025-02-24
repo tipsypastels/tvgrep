@@ -82,6 +82,7 @@ async fn main() -> Result<()> {
 
             queue::start(
                 iter,
+                async |article| crawler.article(article).await,
                 async |_, data: ArticleCrawledData| {
                     println!("{}\n{}", data.title, data.summary);
                     let choice = tokio::task::spawn_blocking(|| {
@@ -99,7 +100,6 @@ async fn main() -> Result<()> {
                     tracing::info!("chose {choice}");
                     Ok(())
                 },
-                async |article| crawler.article(article).await,
             )
             .await?;
         }
