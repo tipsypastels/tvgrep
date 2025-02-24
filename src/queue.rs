@@ -1,6 +1,6 @@
 use anyhow::Result;
 use futures::future::maybe_done;
-use std::{fmt, sync::Arc};
+use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::Mutex;
 
 pub async fn start<'a, T, U, I, Rf, Df>(iter: I, download_func: Df, run_func: Rf) -> Result<()>
@@ -8,7 +8,7 @@ where
     T: fmt::Debug + 'a,
     I: Iterator<Item = &'a T>,
     Df: AsyncFn(&'a T) -> Result<U>,
-    Rf: AsyncFnMut(&'a T, U) -> Result<()>,
+    Rf: AsyncFnMut(&'a T, U) -> Result<ControlFlow<()>>,
 {
     let run_func_lock = Arc::new(Mutex::new(run_func));
     let mut iter = iter
@@ -36,7 +36,12 @@ where
             anyhow::Ok(())
         };
 
-        tokio::try_join!(run_current, preload_next)?;
+        let (cf, _) = tokio::try_join!(run_current, preload_next)?;
+
+        // not using is_break to help type inference
+        if matches!(cf, ControlFlow::<(), ()>::Break(_)) {
+            break;
+        }
     }
 
     Ok(())

@@ -6,6 +6,7 @@ use crate::{
 };
 use anyhow::{Error, Result, bail};
 use dialoguer::Select;
+use std::ops::ControlFlow;
 use tokio::task::spawn_blocking;
 
 pub async fn verdicts<'a, I>(iter: I, crawler: &'a Crawler, history: &'a History) -> Result<()>
@@ -28,10 +29,11 @@ where
                     // do nothing
                 }
                 Choice::Quit => {
-                    todo!()
+                    tracing::debug!("quitting");
+                    return Ok(ControlFlow::Break(()));
                 }
             }
-            Ok(())
+            Ok(ControlFlow::Continue(()))
         },
     )
     .await
