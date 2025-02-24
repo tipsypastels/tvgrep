@@ -1,15 +1,15 @@
 use anyhow::{Error, Result, anyhow};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum Veredict {
+pub enum Verdict {
     Yes,
     No,
 }
 
-impl FromStr for Veredict {
+impl FromStr for Verdict {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -19,6 +19,15 @@ impl FromStr for Veredict {
             Ok(Self::No)
         } else {
             Err(anyhow!("unexpected verdict '{s}'"))
+        }
+    }
+}
+
+impl fmt::Display for Verdict {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Yes => write!(f, "'YES'"),
+            Self::No => write!(f, "'NO'"),
         }
     }
 }

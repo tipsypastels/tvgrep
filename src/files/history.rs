@@ -1,6 +1,6 @@
-use super::verdict::Veredict;
+use super::verdict::Verdict;
 use crate::{list::ArticleMap, name::ArticleName};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -13,7 +13,7 @@ pub struct History {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct HistoryEntry {
-    pub verdict: Veredict,
+    pub verdict: Verdict,
 }
 
 impl History {
@@ -27,6 +27,19 @@ impl History {
 
     pub fn has(&self, article: &ArticleName) -> bool {
         self.map.has(article)
+    }
+
+    pub fn insert(&mut self, article: ArticleName, verdict: Verdict) -> Option<Verdict> {
+        self.map
+            .insert(article, HistoryEntry { verdict })
+            .map(|h| h.verdict)
+    }
+
+    pub async fn flush(&self) -> Result<()> {
+        let text = serde_json::to_string(&self.map).context("failed to serialize history")?;
+        fs::write(self.path.as_ref(), text)
+            .await
+            .context("failed to write history")
     }
 }
 

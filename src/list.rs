@@ -49,8 +49,8 @@ impl<T> ArticleMap<T> {
         self.0.get(article)
     }
 
-    pub fn insert(&mut self, article: ArticleName, value: T) {
-        self.0.insert(article, value);
+    pub fn insert(&mut self, article: ArticleName, value: T) -> Option<T> {
+        self.0.insert(article, value)
     }
 }
 

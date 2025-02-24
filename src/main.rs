@@ -6,7 +6,7 @@ mod print;
 
 use self::{
     crawl::Crawler,
-    files::History,
+    files::{History, Verdict},
     name::{ArticleName, GroupName},
     print::Printer,
 };
@@ -36,6 +36,14 @@ enum Command {
         #[arg(short, long)]
         interactive: bool,
     },
+    /// Add an article and verdict to history
+    Remember {
+        #[arg()]
+        article: ArticleName,
+
+        #[arg()]
+        verdict: Verdict,
+    },
 }
 
 #[tokio::main]
@@ -49,7 +57,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let crawler = Crawler::new();
-    let history = History::new().await?;
+    let mut history = History::new().await?;
 
     match cli.command {
         Command::Related {
@@ -66,6 +74,20 @@ async fn main() -> Result<()> {
 
                 return Ok(());
             }
+        }
+        Command::Remember { article, verdict } => {
+            let prev_verdict = history.insert(article.clone(), verdict);
+            if let Some(prev_verdict) = prev_verdict {
+                if prev_verdict == verdict {
+                    println!("Article {article} already has verdict {verdict}, nothing to do.");
+                    return Ok(());
+                } else {
+                    println!("Article {article} verdict changed to {verdict}.");
+                }
+            } else {
+                println!("Article {article} verdict set to {verdict}.");
+            }
+            history.flush().await?;
         }
     }
 

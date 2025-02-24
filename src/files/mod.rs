@@ -6,7 +6,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use tokio::{fs, sync::OnceCell};
 
 pub use history::{History, HistoryEntry};
-pub use verdict::Veredict;
+pub use verdict::Verdict;
 
 static DIR: OnceCell<Box<Utf8Path>> = OnceCell::const_new();
 
