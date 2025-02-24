@@ -1,4 +1,7 @@
-use crate::{data::ArticleData, name::ArticleName};
+use crate::{
+    data::{ArticleData, ArticleSummaryData},
+    name::ArticleName,
+};
 use anyhow::{Context, Result};
 use kstring::KString;
 use reqwest::Client;
@@ -23,7 +26,7 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
     Ok(ArticleData {
         url: KString::from_string(url),
         title: KString::from_ref(title),
-        summary: KString::from_string(summary),
+        summary,
     })
 }
 
@@ -41,10 +44,8 @@ fn get_title(html: &Html) -> Result<&str> {
 }
 
 // TODO: Some summaries may not be in p tags.
-fn get_summary(main: ElementRef) -> String {
-    const LIMIT_LEN: usize = 2000;
-
-    let mut out = String::new();
+fn get_summary(main: ElementRef) -> ArticleSummaryData {
+    let mut out = ArticleSummaryData::builder();
 
     for child in main.children() {
         let Some(element_ref) = ElementRef::wrap(child) else {
@@ -54,28 +55,14 @@ fn get_summary(main: ElementRef) -> String {
         match element.name() {
             "hr" if element.attr("data-format").is_some() => break,
             "p" => {
-                let mut has_text = false;
-
+                out.push_para();
                 for s in element_ref.text() {
-                    has_text = true;
                     out.push_str(s);
-                }
-
-                if has_text {
-                    out.push_str("\n\n");
-                }
-
-                if out.len() > LIMIT_LEN {
-                    break;
                 }
             }
             _ => {}
         }
     }
 
-    while !out.is_empty() && out.as_bytes()[out.len() - 1] == b'\n' {
-        out.pop();
-    }
-
-    out
+    out.build()
 }
