@@ -24,7 +24,7 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
     let summary = get_summary(main);
 
     Ok(ArticleData {
-        name: article.clone(),
+        url: KString::from_string(url),
         title: KString::from_ref(title),
         summary: KString::from_string(summary),
     })
