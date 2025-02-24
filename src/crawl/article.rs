@@ -35,6 +35,7 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleCraw
     })
 }
 
+// TODO: Some summaries may not be in p tags.
 fn get_summary(main: ElementRef) -> String {
     let mut out = String::new();
     for child in main.children() {
@@ -60,7 +61,7 @@ fn get_summary(main: ElementRef) -> String {
         }
     }
 
-    while out.as_bytes()[out.len() - 1] == b'\n' {
+    while !out.is_empty() && out.as_bytes()[out.len() - 1] == b'\n' {
         out.pop();
     }
 

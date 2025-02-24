@@ -3,15 +3,17 @@ mod files;
 mod list;
 mod name;
 mod print;
+mod queue;
 
 use self::{
-    crawl::Crawler,
+    crawl::{ArticleCrawledData, Crawler},
     files::{History, Verdict},
     name::{ArticleName, GroupName},
     print::Printer,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use dialoguer::Select;
 use dotenvy::dotenv;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
@@ -70,14 +72,36 @@ async fn main() -> Result<()> {
             interactive,
         } => {
             let related = crawler.related(&article, group.as_ref()).await?;
+            let iter = related.iter().filter(|a| !history.has(a));
 
             if !interactive {
-                Printer::new(related.iter().filter(|a| !history.has(a)))
-                    .unfiltered_len(related.len())
-                    .print();
+                Printer::new(iter).unfiltered_len(related.len()).print();
 
                 return Ok(());
             }
+
+            queue::start(
+                iter,
+                async |_, data: ArticleCrawledData| {
+                    println!("{}\n{}", data.title, data.summary);
+                    let choice = tokio::task::spawn_blocking(|| {
+                        let choices = ["Yes", "No", "Skip", "Quit"];
+                        let choice = Select::new()
+                            .with_prompt("Choose")
+                            .items(&choices)
+                            .default(0)
+                            .interact()?;
+
+                        anyhow::Ok(choice)
+                    })
+                    .await??;
+
+                    tracing::info!("chose {choice}");
+                    Ok(())
+                },
+                async |article| crawler.article(article).await,
+            )
+            .await?;
         }
         Command::Remember { article, verdict } => {
             let article_link = article.display_link();
