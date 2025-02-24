@@ -1,5 +1,5 @@
 use super::verdict::Veredict;
-use crate::list::ArticleMap;
+use crate::{list::ArticleMap, name::ArticleName};
 use anyhow::Result;
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,10 @@ impl History {
         let map = read_map(&path).await.unwrap_or_default();
 
         Ok(Self { path, map })
+    }
+
+    pub fn has(&self, article: &ArticleName) -> bool {
+        self.map.has(article)
     }
 }
 

@@ -2,11 +2,13 @@ mod crawl;
 mod files;
 mod list;
 mod name;
+mod print;
 
 use self::{
     crawl::Crawler,
     files::History,
     name::{ArticleName, GroupName},
+    print::Printer,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -47,9 +49,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let crawler = Crawler::new();
-    let mut history = History::new().await?;
-
-    dbg!(history);
+    let history = History::new().await?;
 
     match cli.command {
         Command::Related {
@@ -60,7 +60,10 @@ async fn main() -> Result<()> {
             let related = crawler.related(&article, group.as_ref()).await?;
 
             if !interactive {
-                println!("{related}");
+                Printer::new(related.iter().filter(|a| !history.has(a)))
+                    .unfiltered_len(related.len())
+                    .print();
+
                 return Ok(());
             }
         }
