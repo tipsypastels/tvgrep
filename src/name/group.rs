@@ -53,6 +53,12 @@ impl Ord for GroupName {
     }
 }
 
+impl PartialEq<str> for GroupName {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

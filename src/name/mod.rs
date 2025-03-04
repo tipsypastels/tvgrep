@@ -64,6 +64,16 @@ impl fmt::Display for ArticleName {
     }
 }
 
+impl PartialEq<str> for ArticleName {
+    fn eq(&self, other: &str) -> bool {
+        if let Some((group, page)) = other.split_once('/') {
+            &self.group == group && &self.page == page
+        } else {
+            self.group.is_main() && &self.page == other
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for ArticleName {
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         KString::deserialize(de)?
@@ -132,5 +142,23 @@ mod tests {
         items.sort();
 
         assert_eq!(items, vec![item, before, after])
+    }
+
+    #[test]
+    fn partial_eq_str() {
+        assert_eq!(&an("A/B"), "A/B");
+        assert_eq!(&an("Main/Foo"), "Main/Foo");
+
+        assert_ne!(&an("A/B"), "C/D");
+        assert_ne!(&an("A/B"), "C/B");
+        assert_ne!(&an("A/B"), "A/D");
+    }
+
+    #[test]
+    fn partial_eq_str_main() {
+        assert_eq!(&an("Foo"), "Foo");
+
+        assert_ne!(&an("Other/Foo"), "Foo");
+        assert_ne!(&an("Foo"), "Other/Foo");
     }
 }
