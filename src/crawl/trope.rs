@@ -1,5 +1,5 @@
-use anyhow::Result;
-use kstring::KString;
+use crate::name::ArticleName;
+use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 use std::{fmt, sync::LazyLock};
 
@@ -26,14 +26,16 @@ impl Query for Stub {
 pub struct FlatList;
 
 impl Query for FlatList {
-    type Output = Vec<KString>;
+    type Output = Vec<ArticleName>;
 
     fn query(&self, html: &Html) -> Result<Self::Output> {
         let tropes = html.select(&TROPE_SEL);
         let mut out = Vec::new();
 
         for trope in tropes {
-            out.push(KString::from_string(trope.text().collect::<String>()))
+            let url = trope.attr("href").context("link has no url")?;
+            let article = ArticleName::from_url(url)?;
+            out.push(article);
         }
 
         Ok(out)
