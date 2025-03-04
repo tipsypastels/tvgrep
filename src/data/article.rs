@@ -4,18 +4,20 @@ use kstring::KString;
 use std::fmt;
 
 #[derive(Debug)]
-pub struct ArticleData {
+pub struct ArticleData<T = super::TropeDataStub> {
     pub url: KString,
     pub title: KString,
     pub summary: ArticleSummaryData,
+    pub tropes: T,
 }
 
-impl fmt::Display for ArticleData {
+impl<T: fmt::Display> fmt::Display for ArticleData<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         writeln!(f, "=== {} ===", term::link(&self.title, &self.url))?;
         writeln!(f)?;
-        writeln!(f, "{}", style(&self.summary).dim())
+        writeln!(f, "{}", style(&self.summary).dim())?;
+        writeln!(f, "{}", self.tropes)
     }
 }
 
@@ -55,7 +57,7 @@ impl fmt::Display for ArticleSummaryData {
 
         if addl_cutoff_paras > 0 {
             writeln!(f)?;
-            write!(f, "({addl_cutoff_paras} more paragraphs)")?;
+            writeln!(f, "({addl_cutoff_paras} more paragraphs)")?;
         }
 
         Ok(())

@@ -22,6 +22,14 @@ pub fn article_from_url(url: &str) -> Result<ArticleName> {
     url[REL_ARTICLE_URL_BASE.len()..].parse()
 }
 
+pub fn article_matches_relative_url(article: &ArticleName, url: &str) -> bool {
+    if url.starts_with(REL_ARTICLE_URL_BASE) {
+        article == &url[REL_ARTICLE_URL_BASE.len()..]
+    } else {
+        false
+    }
+}
+
 #[derive(Debug)]
 pub struct RelatedUrlBuilder<'a> {
     article: &'a ArticleName,

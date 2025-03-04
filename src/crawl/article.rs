@@ -12,7 +12,11 @@ static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-ar
 static TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("h1.entry-title").unwrap());
 
 #[tracing::instrument(skip(client))]
-pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData> {
+pub async fn crawl<TQ: super::trope::Query>(
+    client: &Client,
+    article: &ArticleName,
+    trope_query: &TQ,
+) -> Result<ArticleData<TQ::Output>> {
     let url = article.url();
 
     tracing::debug!(url, "crawling article");
@@ -22,11 +26,13 @@ pub async fn crawl(client: &Client, article: &ArticleName) -> Result<ArticleData
 
     let title = get_title(&html)?;
     let summary = get_summary(main);
+    let tropes = trope_query.query(&html)?;
 
     Ok(ArticleData {
         url: KString::from_string(url),
         title: KString::from_ref(title),
         summary,
+        tropes,
     })
 }
 

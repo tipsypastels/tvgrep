@@ -20,3 +20,9 @@ impl fmt::Display for PageName {
         write!(f, "{}", self.0)
     }
 }
+
+impl PartialEq<str> for PageName {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}

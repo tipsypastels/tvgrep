@@ -30,6 +30,10 @@ impl ArticleName {
         url::related_url(self)
     }
 
+    pub fn matches_relative_url(&self, url: &str) -> bool {
+        url::article_matches_relative_url(self, url)
+    }
+
     #[allow(unused)]
     pub fn display_without_main(&self) -> impl fmt::Display {
         DisplayWithoutMain(self)
@@ -61,6 +65,16 @@ impl FromStr for ArticleName {
 impl fmt::Display for ArticleName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.group, self.page)
+    }
+}
+
+impl PartialEq<str> for ArticleName {
+    fn eq(&self, other: &str) -> bool {
+        if let Some((group, page)) = other.split_once('/') {
+            &self.group == group && &self.page == page
+        } else {
+            self.group.is_main() && &self.page == other
+        }
     }
 }
 
@@ -132,5 +146,28 @@ mod tests {
         items.sort();
 
         assert_eq!(items, vec![item, before, after])
+    }
+
+    #[test]
+    fn matches_relative_url() {
+        assert!(an("Foo/Bar").matches_relative_url("/pmwiki/pmwiki.php/Foo/Bar"));
+    }
+
+    #[test]
+    fn partial_eq_str() {
+        assert_eq!(&an("A/B"), "A/B");
+        assert_eq!(&an("Main/Foo"), "Main/Foo");
+
+        assert_ne!(&an("A/B"), "C/D");
+        assert_ne!(&an("A/B"), "C/B");
+        assert_ne!(&an("A/B"), "A/D");
+    }
+
+    #[test]
+    fn partial_eq_str_main() {
+        assert_eq!(&an("Foo"), "Foo");
+
+        assert_ne!(&an("Other/Foo"), "Foo");
+        assert_ne!(&an("Foo"), "Other/Foo");
     }
 }
