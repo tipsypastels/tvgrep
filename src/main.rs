@@ -74,7 +74,7 @@ async fn main() -> Result<()> {
         } => {
             let related = crawler.related(&article, group.as_ref()).await?;
             let iter = related.iter().filter(|a| !history.has(a));
-            let trope_query = crawl::trope::Stub;
+            let trope_query = crawl::trope::Single(&article);
 
             // TODO: Use trope_query here in bulk.
             if !interactive {

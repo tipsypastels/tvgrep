@@ -23,6 +23,17 @@ impl Query for Stub {
 }
 
 #[derive(Debug)]
+pub struct Single<'a>(pub &'a ArticleName);
+
+impl Query for Single<'_> {
+    type Output = data::TropeDataSingle;
+
+    fn query(&self, html: &Html) -> Result<Self::Output> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
 pub struct FlatList;
 
 impl Query for FlatList {
