@@ -15,9 +15,7 @@ use self::{
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use dotenvy::dotenv;
 use std::ops::ControlFlow;
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -55,13 +53,6 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv().ok();
-
-    tracing_subscriber::registry()
-        .with(fmt::layer().without_time())
-        .with(EnvFilter::from_default_env())
-        .init();
-
     let cli = Cli::parse();
     let crawler = Crawler::new();
     let history = History::new(cli.dry_run).await?;
@@ -95,7 +86,6 @@ async fn main() -> Result<()> {
                             history.insert(article.clone(), Verdict::No);
                         }
                         "Quit" => {
-                            tracing::debug!("quitting");
                             return Ok(ControlFlow::Break(()));
                         }
                         _ => {}

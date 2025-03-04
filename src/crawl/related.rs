@@ -7,12 +7,11 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use scraper::{Html, Selector};
 use std::sync::{LazyLock, OnceLock};
-use tracing::{Span, debug, field, instrument, trace};
 
 static COUNT_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("p > strong").unwrap());
 
-// // If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
-// // TODO: Doesn't work without a group, no header.
+// If we were signed in this would not work because there's an additional <a> to edit inside each <li>.
+// TODO: Doesn't work without a group, no header.
 static LISTING_SEL: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse(".examples-header + ul > li > a").unwrap());
 
@@ -39,23 +38,15 @@ struct RelatedCrawler<'a> {
 }
 
 impl RelatedCrawler<'_> {
-    #[instrument(skip_all, fields(article = %self.article, group = field::Empty))]
     async fn crawl(self) -> Result<ArticleList> {
-        if let Some(group) = &self.group {
-            Span::current().record("group", field::display(group));
-        }
-
         let mut out = ArticleList::new();
         let mut page = 1u8;
 
         loop {
-            debug!(page, "loading page");
-
             let cur_len = out.len();
             self.crawl_page(&mut out, page).await?;
 
             let addl_len = out.len() - cur_len;
-            debug!(page, len = addl_len, "loaded");
 
             if addl_len == 0 {
                 break;
@@ -70,7 +61,6 @@ impl RelatedCrawler<'_> {
         Ok(out)
     }
 
-    #[instrument(skip(self, out))]
     async fn crawl_page(&self, out: &mut ArticleList, page: u8) -> Result<()> {
         let url = self
             .article
@@ -78,8 +68,6 @@ impl RelatedCrawler<'_> {
             .group(self.group)
             .page(page)
             .build();
-
-        debug!(url, "crawling listing");
 
         let html = super::scrape(self.client, &url).await?;
         let progress = self.get_or_init_progress(&html);
@@ -90,8 +78,6 @@ impl RelatedCrawler<'_> {
         for link in links {
             let url = link.attr("href").context("link has no url")?;
             let article = ArticleName::from_url(url).context("invalid url")?;
-
-            trace!(%article);
 
             out.push_assume_sorted(article);
             progress.inc();

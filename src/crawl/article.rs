@@ -11,15 +11,12 @@ use std::sync::LazyLock;
 static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-article").unwrap());
 static TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("h1.entry-title").unwrap());
 
-#[tracing::instrument(skip(client))]
 pub async fn crawl<TQ: super::trope::Query>(
     client: &Client,
     article: &ArticleName,
     trope_query: &TQ,
 ) -> Result<ArticleData<TQ::Output>> {
     let url = article.url();
-
-    tracing::debug!(url, "crawling article");
 
     let html = super::scrape(client, &url).await?;
     let main = html.select(&MAIN_SEL).next().context("no main")?;

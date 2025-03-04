@@ -41,11 +41,8 @@ impl History {
 
     pub async fn flush(&self) -> Result<()> {
         if self.dry_run {
-            tracing::debug!("not flushing history (dry run)");
             return Ok(());
         }
-
-        tracing::debug!("flushing history");
 
         let text = {
             let map = &*self.map.lock();
@@ -63,7 +60,7 @@ async fn read_map(path: &Utf8Path) -> Option<ArticleMap<HistoryEntry>> {
     match serde_json::from_str(&text) {
         Ok(history) => Some(history),
         Err(error) => {
-            tracing::error!(%error, "failed to parse history");
+            eprintln!("Failed to parse history: {error}.");
             None
         }
     }

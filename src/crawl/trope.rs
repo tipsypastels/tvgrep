@@ -2,12 +2,12 @@ use crate::{data, name::ArticleName};
 use anyhow::{Context, Result};
 use kstring::KString;
 use scraper::{ElementRef, Html, Selector};
-use std::{fmt, sync::LazyLock};
+use std::sync::LazyLock;
 
 static TROPE_SEL: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("li > a.twikilink:first-child").unwrap());
 
-pub trait Query: fmt::Debug {
+pub trait Query {
     type Output;
     fn query(&self, html: &Html) -> Result<Self::Output>;
 }

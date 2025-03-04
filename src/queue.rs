@@ -17,7 +17,6 @@ where
     while let Some((item, mut future)) = iter.next() {
         let run_func = run_func.clone();
         let run_current = async move {
-            tracing::debug!("late-downloading {item:?}");
             let () = future.as_mut().await;
             let data = future.as_mut().take_output().unwrap()?;
 
@@ -26,10 +25,8 @@ where
 
         let preload_next_item = iter.peek_mut();
         let preload_next = async move {
-            if let Some((item, fut)) = preload_next_item {
-                tracing::debug!("preloading {item:?}");
+            if let Some((_, fut)) = preload_next_item {
                 fut.await;
-                tracing::debug!("preloaded {item:?}");
             }
             anyhow::Ok(())
         };

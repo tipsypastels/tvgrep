@@ -23,10 +23,8 @@ async fn dir() -> Result<&'static Box<Utf8Path>> {
             fs::create_dir(dir.as_ref())
                 .await
                 .context("failed to create storage dir")?;
-            tracing::debug!(%dir, "created storage dir");
         }
 
-        tracing::debug!(%dir, "storage dir");
         anyhow::Ok(dir)
     })
     .await
