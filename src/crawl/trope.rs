@@ -1,10 +1,7 @@
-use crate::{
-    data::{self, TropeDataSingle},
-    name::ArticleName,
-};
+use crate::{data, name::ArticleName};
 use anyhow::{Context, Result};
 use kstring::KString;
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use std::{fmt, sync::LazyLock};
 
 static TROPE_SEL: LazyLock<Selector> =
@@ -39,18 +36,27 @@ impl Query for Single<'_> {
             node.attr("href")
                 .is_some_and(|url| self.0.matches_relative_url(url))
         }) else {
-            return Ok(data::TropeDataSingle {
-                trope,
-                text: data::TropeDataSingleText::Missing,
-            });
+            return Ok(data::TropeDataSingle::missing(trope));
         };
 
-        let desc = KString::from_static("TODO");
+        let li_node = trope_node.parent().context("trope_node lacks parent")?;
+        let li_node = ElementRef::wrap(li_node).context("trope_node lacks parent")?;
+        let li_node_text = li_node
+            .text()
+            .filter(|s| !s.trim().is_empty())
+            .enumerate()
+            .map(|(i, s)| {
+                if i == 1 {
+                    s.strip_prefix(": ").unwrap_or(s)
+                } else {
+                    s
+                }
+            })
+            .skip(1) // skip trope name
+            .collect::<String>();
 
-        Ok(TropeDataSingle {
-            trope,
-            text: data::TropeDataSingleText::Text(desc),
-        })
+        let text = (!li_node_text.is_empty()).then(|| KString::from_string(li_node_text));
+        Ok(data::TropeDataSingle::new(trope, text))
     }
 }
 

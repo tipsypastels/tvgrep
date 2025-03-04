@@ -15,6 +15,7 @@ impl<T: fmt::Display> fmt::Display for ArticleData<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         writeln!(f, "=== {} ===", term::link(&self.title, &self.url))?;
+        writeln!(f)?;
         writeln!(f, "{}", style(&self.summary).dim())?;
         writeln!(f, "{}", self.tropes)
     }
@@ -56,7 +57,7 @@ impl fmt::Display for ArticleSummaryData {
 
         if addl_cutoff_paras > 0 {
             writeln!(f)?;
-            write!(f, "({addl_cutoff_paras} more paragraphs)")?;
+            writeln!(f, "({addl_cutoff_paras} more paragraphs)")?;
         }
 
         Ok(())

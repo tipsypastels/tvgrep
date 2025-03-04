@@ -13,12 +13,12 @@ impl fmt::Display for TropeDataStub {
 
 #[derive(Debug)]
 pub struct TropeDataSingle {
-    pub trope: ArticleName,
-    pub text: TropeDataSingleText,
+    trope: ArticleName,
+    text: TropeDataSingleText,
 }
 
 #[derive(Debug)]
-pub enum TropeDataSingleText {
+enum TropeDataSingleText {
     /// Trope has this text.
     Text(KString),
     /// Trope has no text.
@@ -26,6 +26,28 @@ pub enum TropeDataSingleText {
     /// Trope was not found on the tropes list.
     /// This probably means it's a stray link somewhere else on the page.
     Missing,
+}
+
+impl TropeDataSingle {
+    pub fn new(trope: ArticleName, text: Option<KString>) -> Self {
+        match text {
+            Some(text) => Self {
+                trope,
+                text: TropeDataSingleText::Text(text),
+            },
+            None => Self {
+                trope,
+                text: TropeDataSingleText::Blank,
+            },
+        }
+    }
+
+    pub fn missing(trope: ArticleName) -> Self {
+        Self {
+            trope,
+            text: TropeDataSingleText::Missing,
+        }
+    }
 }
 
 impl fmt::Display for TropeDataSingle {
