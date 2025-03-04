@@ -83,8 +83,8 @@ async fn main() -> Result<()> {
 
             queue::make(
                 iter,
-                async |article| crawler.article(article).await,
-                async |article, data: ArticleData| {
+                async |article| crawler.article::<crawl::TropeQueryFlatList>(article).await,
+                async |article, data| {
                     println!("{data}");
                     match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
                         "Yes" => {

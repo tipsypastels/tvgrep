@@ -10,6 +10,8 @@ use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Html;
 
+pub use article::trope::*;
+
 #[derive(Debug)]
 pub struct Crawler {
     client: Client,
@@ -22,8 +24,11 @@ impl Crawler {
         }
     }
 
-    pub async fn article(&self, article: &ArticleName) -> Result<ArticleData> {
-        article::crawl(&self.client, article)
+    pub async fn article<TQ: TropeQuery>(
+        &self,
+        article: &ArticleName,
+    ) -> Result<ArticleData<TQ::Output>> {
+        article::crawl::<TQ>(&self.client, article)
             .await
             .context("article crawl error")
     }
