@@ -1,5 +1,6 @@
 mod article;
 mod related;
+pub mod trope;
 
 use crate::{
     data::ArticleData,
@@ -9,8 +10,6 @@ use crate::{
 use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Html;
-
-pub use article::trope::*;
 
 #[derive(Debug)]
 pub struct Crawler {
@@ -24,11 +23,12 @@ impl Crawler {
         }
     }
 
-    pub async fn article<TQ: TropeQuery>(
+    pub async fn article<TQ: trope::Query>(
         &self,
         article: &ArticleName,
+        trope_query: &TQ,
     ) -> Result<ArticleData<TQ::Output>> {
-        article::crawl::<TQ>(&self.client, article)
+        article::crawl(&self.client, article, trope_query)
             .await
             .context("article crawl error")
     }

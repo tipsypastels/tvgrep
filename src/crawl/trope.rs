@@ -1,34 +1,34 @@
 use anyhow::Result;
 use kstring::KString;
 use scraper::{Html, Selector};
-use std::sync::LazyLock;
+use std::{fmt, sync::LazyLock};
 
 static TROPE_SEL: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("li > a.twikilink:first-child").unwrap());
 
-pub trait TropeQuery {
+pub trait Query: fmt::Debug {
     type Output;
-    fn query(html: &Html) -> Result<Self::Output>;
+    fn query(&self, html: &Html) -> Result<Self::Output>;
 }
 
 #[derive(Debug)]
-pub struct TropeQueryIgnore;
+pub struct Stub;
 
-impl TropeQuery for TropeQueryIgnore {
+impl Query for Stub {
     type Output = ();
 
-    fn query(_html: &Html) -> Result<Self::Output> {
+    fn query(&self, _html: &Html) -> Result<Self::Output> {
         Ok(())
     }
 }
 
 #[derive(Debug)]
-pub struct TropeQueryFlatList;
+pub struct FlatList;
 
-impl TropeQuery for TropeQueryFlatList {
+impl Query for FlatList {
     type Output = Vec<KString>;
 
-    fn query(html: &Html) -> Result<Self::Output> {
+    fn query(&self, html: &Html) -> Result<Self::Output> {
         let tropes = html.select(&TROPE_SEL);
         let mut out = Vec::new();
 

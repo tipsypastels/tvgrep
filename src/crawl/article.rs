@@ -1,6 +1,3 @@
-pub mod trope;
-
-use self::trope::TropeQuery;
 use crate::{
     data::{ArticleData, ArticleSummaryData},
     name::ArticleName,
@@ -15,9 +12,10 @@ static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-ar
 static TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("h1.entry-title").unwrap());
 
 #[tracing::instrument(skip(client))]
-pub async fn crawl<TQ: TropeQuery>(
+pub async fn crawl<TQ: super::trope::Query>(
     client: &Client,
     article: &ArticleName,
+    trope_query: &TQ,
 ) -> Result<ArticleData<TQ::Output>> {
     let url = article.url();
 
@@ -28,7 +26,7 @@ pub async fn crawl<TQ: TropeQuery>(
 
     let title = get_title(&html)?;
     let summary = get_summary(main);
-    let tropes = TQ::query(&html)?;
+    let tropes = trope_query.query(&html)?;
 
     Ok(ArticleData {
         url: KString::from_string(url),

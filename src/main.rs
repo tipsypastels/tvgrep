@@ -9,7 +9,6 @@ mod term;
 
 use self::{
     crawl::Crawler,
-    data::ArticleData,
     files::{History, Verdict},
     name::{ArticleName, GroupName},
     print::Printer,
@@ -75,7 +74,9 @@ async fn main() -> Result<()> {
         } => {
             let related = crawler.related(&article, group.as_ref()).await?;
             let iter = related.iter().filter(|a| !history.has(a));
+            let trope_query = crawl::trope::FlatList;
 
+            // TODO: Use trope_query here in bulk.
             if !interactive {
                 Printer::new(iter).unfiltered_len(related.len()).print();
                 return Ok(());
@@ -83,7 +84,7 @@ async fn main() -> Result<()> {
 
             queue::make(
                 iter,
-                async |article| crawler.article::<crawl::TropeQueryFlatList>(article).await,
+                async |article| crawler.article(article, &trope_query).await,
                 async |article, data| {
                     println!("{data}");
                     match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
