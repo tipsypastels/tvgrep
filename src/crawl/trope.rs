@@ -33,17 +33,24 @@ impl Query for Single<'_> {
     type Output = data::TropeDataSingle;
 
     fn query(&self, html: &Html) -> Result<Self::Output> {
+        let trope = self.0.clone();
+
         let Some(trope_node) = html.select(&TROPE_SEL).find(|node| {
             node.attr("href")
                 .is_some_and(|url| self.0.matches_relative_url(url))
         }) else {
-            return Ok(data::TropeDataSingle::none());
+            return Ok(data::TropeDataSingle {
+                trope,
+                text: data::TropeDataSingleText::Missing,
+            });
         };
 
-        let trope = self.0.clone();
         let desc = KString::from_static("TODO");
 
-        Ok(TropeDataSingle::new(trope, desc))
+        Ok(TropeDataSingle {
+            trope,
+            text: data::TropeDataSingleText::Text(desc),
+        })
     }
 }
 
