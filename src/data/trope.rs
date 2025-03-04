@@ -13,55 +13,22 @@ impl fmt::Display for TropeDataStub {
 
 #[derive(Debug)]
 pub struct TropeDataSingle {
-    trope: ArticleName,
-    text: TropeDataSingleText,
-}
-
-#[derive(Debug)]
-enum TropeDataSingleText {
-    /// Trope has this text.
-    Text(KString),
-    /// Trope has no text.
-    Blank,
-    /// Trope was not found on the tropes list.
-    /// This probably means it's a stray link somewhere else on the page.
-    Missing,
-}
-
-impl TropeDataSingle {
-    pub fn new(trope: ArticleName, text: Option<KString>) -> Self {
-        match text {
-            Some(text) => Self {
-                trope,
-                text: TropeDataSingleText::Text(text),
-            },
-            None => Self {
-                trope,
-                text: TropeDataSingleText::Blank,
-            },
-        }
-    }
-
-    pub fn missing(trope: ArticleName) -> Self {
-        Self {
-            trope,
-            text: TropeDataSingleText::Missing,
-        }
-    }
+    pub trope: ArticleName,
+    pub text: Option<KString>,
 }
 
 impl fmt::Display for TropeDataSingle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let trope = self.trope.display_link();
         match &self.text {
-            TropeDataSingleText::Text(text) => {
-                writeln!(f, "{trope}: {text}")
-            }
-            TropeDataSingleText::Blank => {
-                writeln!(f, "{trope}: {}", console::style("(no text)").dim())
-            }
-            TropeDataSingleText::Missing => {
+            None => {
                 writeln!(f, "{trope}: {}", console::style("(trope missing)").on_red())
+            }
+            Some(text) if text.is_empty() => {
+                writeln!(f, "{trope}: {}", console::style("(trope blank)").dim())
+            }
+            Some(text) => {
+                writeln!(f, "{trope}: {text}")
             }
         }
     }

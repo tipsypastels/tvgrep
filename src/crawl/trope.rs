@@ -36,7 +36,7 @@ impl Query for Single<'_> {
             node.attr("href")
                 .is_some_and(|url| self.0.matches_relative_url(url))
         }) else {
-            return Ok(data::TropeDataSingle::missing(trope));
+            return Ok(data::TropeDataSingle { trope, text: None });
         };
 
         let li_node = trope_node.parent().context("trope_node lacks parent")?;
@@ -55,8 +55,8 @@ impl Query for Single<'_> {
             .skip(1) // skip trope name
             .collect::<String>();
 
-        let text = (!li_node_text.is_empty()).then(|| KString::from_string(li_node_text));
-        Ok(data::TropeDataSingle::new(trope, text))
+        let text = Some(KString::from_string(li_node_text));
+        Ok(data::TropeDataSingle { trope, text })
     }
 }
 
