@@ -12,14 +12,31 @@ impl fmt::Display for TropeDataStub {
 }
 
 #[derive(Debug)]
-pub struct TropeDataSingle {
-    pub trope: ArticleName,
-    pub desc: KString,
+pub struct TropeDataSingle(Option<TropeDataSingleInner>);
+
+#[derive(Debug)]
+pub struct TropeDataSingleInner {
+    trope: ArticleName,
+    desc: KString,
+}
+
+impl TropeDataSingle {
+    pub fn new(trope: ArticleName, desc: KString) -> Self {
+        Self(Some(TropeDataSingleInner { trope, desc }))
+    }
+
+    pub fn none() -> Self {
+        Self(None)
+    }
 }
 
 impl fmt::Display for TropeDataSingle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{}: {}", self.trope.display_link(), self.desc)
+        if let Some(inner) = &self.0 {
+            writeln!(f, "{}: {}", inner.trope.display_link(), inner.desc)
+        } else {
+            writeln!(f, "{}", console::style("(no trope data)").on_red())
+        }
     }
 }
 

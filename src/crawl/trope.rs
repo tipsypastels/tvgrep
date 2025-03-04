@@ -1,5 +1,9 @@
-use crate::{data, name::ArticleName};
+use crate::{
+    data::{self, TropeDataSingle},
+    name::ArticleName,
+};
 use anyhow::{Context, Result};
+use kstring::KString;
 use scraper::{Html, Selector};
 use std::{fmt, sync::LazyLock};
 
@@ -29,7 +33,17 @@ impl Query for Single<'_> {
     type Output = data::TropeDataSingle;
 
     fn query(&self, html: &Html) -> Result<Self::Output> {
-        todo!()
+        let Some(trope_node) = html.select(&TROPE_SEL).find(|node| {
+            node.attr("href")
+                .is_some_and(|url| self.0.matches_relative_url(url))
+        }) else {
+            return Ok(data::TropeDataSingle::none());
+        };
+
+        let trope = self.0.clone();
+        let desc = KString::from_static("TODO");
+
+        Ok(TropeDataSingle::new(trope, desc))
     }
 }
 

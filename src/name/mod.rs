@@ -30,6 +30,10 @@ impl ArticleName {
         url::related_url(self)
     }
 
+    pub fn matches_relative_url(&self, url: &str) -> bool {
+        url::article_matches_relative_url(self, url)
+    }
+
     #[allow(unused)]
     pub fn display_without_main(&self) -> impl fmt::Display {
         DisplayWithoutMain(self)
@@ -142,6 +146,11 @@ mod tests {
         items.sort();
 
         assert_eq!(items, vec![item, before, after])
+    }
+
+    #[test]
+    fn matches_relative_url() {
+        assert!(an("Foo/Bar").matches_relative_url("/pmwiki/pmwiki.php/Foo/Bar"));
     }
 
     #[test]
