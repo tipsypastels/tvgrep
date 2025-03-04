@@ -4,21 +4,19 @@ use kstring::KString;
 use std::fmt;
 
 #[derive(Debug)]
-pub struct ArticleData<T = ()> {
+pub struct ArticleData<T = super::TropeDataStub> {
     pub url: KString,
     pub title: KString,
     pub summary: ArticleSummaryData,
     pub tropes: T,
 }
 
-impl<T: fmt::Debug> fmt::Display for ArticleData<T> {
+impl<T: fmt::Display> fmt::Display for ArticleData<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         writeln!(f, "=== {} ===", term::link(&self.title, &self.url))?;
-        writeln!(f)?;
-        writeln!(f, "{:?}", self.tropes)?;
-        writeln!(f)?;
-        writeln!(f, "{}", style(&self.summary).dim())
+        writeln!(f, "{}", style(&self.summary).dim())?;
+        writeln!(f, "{}", self.tropes)
     }
 }
 

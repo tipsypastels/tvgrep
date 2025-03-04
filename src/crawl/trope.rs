@@ -1,4 +1,4 @@
-use crate::name::ArticleName;
+use crate::{data, name::ArticleName};
 use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 use std::{fmt, sync::LazyLock};
@@ -15,10 +15,10 @@ pub trait Query: fmt::Debug {
 pub struct Stub;
 
 impl Query for Stub {
-    type Output = ();
+    type Output = data::TropeDataStub;
 
     fn query(&self, _html: &Html) -> Result<Self::Output> {
-        Ok(())
+        Ok(data::TropeDataStub)
     }
 }
 
@@ -26,7 +26,7 @@ impl Query for Stub {
 pub struct FlatList;
 
 impl Query for FlatList {
-    type Output = Vec<ArticleName>;
+    type Output = data::TropeDataFlatList;
 
     fn query(&self, html: &Html) -> Result<Self::Output> {
         let tropes = html.select(&TROPE_SEL);
@@ -38,6 +38,6 @@ impl Query for FlatList {
             out.push(article);
         }
 
-        Ok(out)
+        Ok(data::TropeDataFlatList(out))
     }
 }
