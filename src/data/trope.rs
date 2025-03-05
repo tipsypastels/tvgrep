@@ -1,11 +1,12 @@
 use crate::name::ArticleName;
+use console::style;
 use kstring::KString;
-use std::fmt;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct TropeDataStub;
 
-impl fmt::Display for TropeDataStub {
+impl Display for TropeDataStub {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         Ok(())
     }
@@ -17,28 +18,32 @@ pub struct TropeDataSingle {
     pub text: Option<KString>,
 }
 
-impl fmt::Display for TropeDataSingle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let trope = self.trope.display_link();
-        match &self.text {
-            None => {
-                writeln!(f, "{trope}: {}", console::style("(trope missing)").on_red())
-            }
-            Some(text) if text.is_empty() => {
-                writeln!(f, "{trope}: {}", console::style("(trope blank)").dim())
-            }
-            Some(text) => {
-                writeln!(f, "{trope}: {text}")
+impl TropeDataSingle {
+    pub fn display_text(&self) -> impl Display {
+        struct DisplayText<'a>(Option<&'a str>);
+        impl Display for DisplayText<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self.0 {
+                    None => write!(f, "{}", style("(trope missing)").on_red()),
+                    Some("") => write!(f, "{}", style("(trope blank)").dim()),
+                    Some(text) => write!(f, "{text}"),
+                }
             }
         }
+        DisplayText(self.text.as_deref())
+    }
+}
+
+impl Display for TropeDataSingle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}: {}", self.trope.display_link(), self.display_text())
     }
 }
 
 #[derive(Debug)]
 pub struct TropeDataFlatList(pub Vec<ArticleName>);
 
-// TODO: Use the printer feature for this.
-impl fmt::Display for TropeDataFlatList {
+impl Display for TropeDataFlatList {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         for trope in &self.0 {

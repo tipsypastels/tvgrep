@@ -11,10 +11,10 @@ use self::{
     crawl::Crawler,
     files::{History, Verdict},
     name::{ArticleName, GroupName},
-    print::Printer,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use futures::{StreamExt, stream};
 use std::ops::ControlFlow;
 
 #[derive(Debug, Parser)]
@@ -67,9 +67,18 @@ async fn main() -> Result<()> {
             let iter = related.iter().filter(|a| !history.has(a));
             let trope_query = crawl::trope::Single(&article);
 
-            // TODO: Use trope_query here in bulk.
             if !interactive {
-                Printer::new(iter).unfiltered_len(related.len()).print();
+                print::print_async(
+                    Some(related.len()),
+                    stream::iter(iter).then(|article| {
+                        let crawler = crawler.clone();
+                        async move {
+                            let data = crawler.article(article, &trope_query).await;
+                            print::ArticleAndTropeDesc::new(article, data)
+                        }
+                    }),
+                )
+                .await;
                 return Ok(());
             }
 

@@ -1,70 +1,46 @@
-use crate::name::{ArticleName, GroupName};
+use crate::{
+    data::{ArticleData, TropeDataSingle},
+    name::{ArticleName, GroupName},
+};
+use anyhow::Result;
 use futures::{Stream, StreamExt};
 use std::{
     fmt::{self, Display},
     pin::pin,
 };
 
-#[derive(Debug, Clone)]
-pub struct Printer<I> {
-    iter: I,
-    unfiltered_len: Option<usize>,
-}
-
-impl<I> Printer<I> {
-    pub fn new(iter: I) -> Self {
-        Self {
-            iter,
-            unfiltered_len: None,
-        }
-    }
-
-    pub fn unfiltered_len(mut self, len: usize) -> Self {
-        self.unfiltered_len = Some(len);
-        self
-    }
-}
-
-impl<'a, I, P> Printer<I>
+#[allow(unused)]
+pub fn print<I, P>(unfiltered_len: Option<usize>, iter: I)
 where
-    I: Iterator<Item = &'a P>,
-    P: PrintArticleEntry + 'a,
+    I: Iterator<Item = P>,
+    P: PrintArticleEntry,
 {
-    #[allow(unused)]
-    pub fn print(self) {
-        let mut state = PrinterState::new();
-
-        for entry in self.iter {
-            state.advance(entry);
-        }
-
-        state.finish(self.unfiltered_len);
+    let mut state = PrinterState::new();
+    for entry in iter {
+        state.advance(&entry);
     }
+    state.finish(unfiltered_len);
 }
 
-impl<'a, S, P> Printer<S>
+pub async fn print_async<S, P>(unfiltered_len: Option<usize>, stream: S)
 where
-    S: Stream<Item = &'a P>,
-    P: PrintArticleEntry + 'a,
+    S: Stream<Item = P>,
+    P: PrintArticleEntry,
 {
-    pub async fn print_async(self) {
-        let mut state = PrinterState::new();
-        let mut stream = pin!(self.iter);
-
-        while let Some(entry) = stream.next().await {
-            state.advance(entry);
-        }
-
-        state.finish(self.unfiltered_len);
+    let mut state = PrinterState::new();
+    let mut stream = pin!(stream);
+    while let Some(entry) = stream.next().await {
+        state.advance(&entry);
     }
+    state.finish(unfiltered_len);
 }
 
-struct PrinterState<'a> {
-    group: Option<&'a GroupName>,
+struct PrinterState {
+    group: Option<GroupName>,
     count: usize,
 }
 
-impl<'a> PrinterState<'a> {
+impl PrinterState {
     fn new() -> Self {
         Self {
             group: None,
@@ -72,12 +48,12 @@ impl<'a> PrinterState<'a> {
         }
     }
 
-    fn advance<P: PrintArticleEntry>(&mut self, entry: &'a P) {
+    fn advance<P: PrintArticleEntry>(&mut self, entry: &P) {
         self.count += 1;
 
         let group = entry.group();
-        if self.group.is_none() || self.group.is_some_and(|g| g != group) {
-            self.group = Some(group);
+        if self.group.is_none() || self.group.as_ref().is_some_and(|g| g != group) {
+            self.group = Some(group.clone());
 
             println!();
             println!("{group}");
@@ -113,24 +89,44 @@ impl PrintArticleEntry for ArticleName {
     }
 }
 
-// impl<T> PrintArticleEntry for (ArticleName, T)
-// where
-//     T: Display,
-// {
-//     fn group(&self) -> &GroupName {
-//         &self.0.group
-//     }
+#[derive(Debug)]
+pub struct ArticleAndTropeDesc<'a> {
+    name: &'a ArticleName,
+    data: Result<ArticleData<TropeDataSingle>>,
+}
 
-//     fn display(&self) -> impl Display {
-//         struct TupleDisplay<'a, T>(&'a ArticleName, &'a T);
-//         impl<T> Display for TupleDisplay<'_, T>
-//         where
-//             T: Display,
-//         {
-//             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//                 write!(f, "{} ({})", self.0.display_link(), self.1)
-//             }
-//         }
-//         TupleDisplay(&self.0, &self.1)
-//     }
-// }
+impl<'a> ArticleAndTropeDesc<'a> {
+    pub fn new(name: &'a ArticleName, data: Result<ArticleData<TropeDataSingle>>) -> Self {
+        Self { name, data }
+    }
+}
+
+impl PrintArticleEntry for ArticleAndTropeDesc<'_> {
+    fn group(&self) -> &GroupName {
+        &self.name.group
+    }
+
+    fn display(&self) -> impl Display {
+        self
+    }
+}
+
+impl Display for ArticleAndTropeDesc<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.name.display_link())?;
+        match &self.data {
+            Ok(data) => writeln!(f, "{}", data.tropes.display_text()),
+            Err(_) => writeln!(f, "{}", console::style("(load failed)").on_red()),
+        }
+    }
+}
+
+impl<P: PrintArticleEntry> PrintArticleEntry for &P {
+    fn group(&self) -> &GroupName {
+        (*self).group()
+    }
+
+    fn display(&self) -> impl Display {
+        (*self).display()
+    }
+}

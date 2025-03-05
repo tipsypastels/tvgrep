@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Html;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Crawler {
     client: Client,
 }

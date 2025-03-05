@@ -12,7 +12,7 @@ pub trait Query {
     fn query(&self, html: &Html) -> Result<Self::Output>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Stub;
 
 impl Query for Stub {
@@ -23,7 +23,7 @@ impl Query for Stub {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Single<'a>(pub &'a ArticleName);
 
 impl Query for Single<'_> {
@@ -60,7 +60,7 @@ impl Query for Single<'_> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct FlatList;
 
 impl Query for FlatList {
