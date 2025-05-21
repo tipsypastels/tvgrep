@@ -1,7 +1,7 @@
-use crate::term;
+use crate::{Progress, term};
 use console::style;
 use kstring::KString;
-use std::fmt;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct ArticleData<T = super::TropeDataStub> {
@@ -11,13 +11,35 @@ pub struct ArticleData<T = super::TropeDataStub> {
     pub tropes: T,
 }
 
-impl<T: fmt::Display> fmt::Display for ArticleData<T> {
+impl<T: Display> ArticleData<T> {
+    pub fn display_with_progress(&self, progress: Progress) -> impl Display {
+        ArticleDataDisplay(Some(progress), self)
+    }
+}
+
+impl<T: Display> Display for ArticleData<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        ArticleDataDisplay(None, self).fmt(f)
+    }
+}
+
+struct ArticleDataDisplay<'a, T>(Option<Progress>, &'a ArticleData<T>);
+
+impl<T: Display> Display for ArticleDataDisplay<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
-        writeln!(f, "=== {} ===", term::link(&self.title, &self.url))?;
+
+        let link = term::link(&self.1.title, &self.1.url);
+
+        if let Some(progress) = self.0 {
+            writeln!(f, "=== {link} === {progress}")?;
+        } else {
+            writeln!(f, "=== {link} ===")?;
+        }
+
         writeln!(f)?;
-        writeln!(f, "{}", style(&self.summary).dim())?;
-        writeln!(f, "{}", self.tropes)
+        writeln!(f, "{}", style(&self.1.summary).dim())?;
+        writeln!(f, "{}", self.1.tropes)
     }
 }
 
@@ -30,7 +52,7 @@ impl ArticleSummaryData {
     }
 }
 
-impl fmt::Display for ArticleSummaryData {
+impl Display for ArticleSummaryData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const CUTOFF: usize = 2000;
 

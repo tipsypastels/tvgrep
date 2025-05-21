@@ -4,13 +4,16 @@ mod files;
 mod list;
 mod name;
 mod print;
+mod progress;
 mod queue;
 mod term;
 
 use self::{
     crawl::Crawler,
+    data::{ArticleData, TropeDataSingle},
     files::{History, Verdict},
     name::{ArticleName, GroupName},
+    progress::Progress,
 };
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -85,20 +88,10 @@ async fn main() -> Result<()> {
             queue::make(
                 iter,
                 async |article| crawler.article(article, &trope_query).await,
-                async |article, data| {
-                    println!("{data}");
-                    // match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
-                    //     "Yes" => {
-                    //         history.insert(article.clone(), Verdict::Yes);
-                    //     }
-                    //     "No" => {
-                    //         history.insert(article.clone(), Verdict::No);
-                    //     }
-                    //     "Quit" => {
-                    //         return Ok(ControlFlow::Break(()));
-                    //     }
-                    //     _ => {}
-                    // }
+                async |article: &ArticleName,
+                       data: ArticleData<TropeDataSingle>,
+                       progress: Progress| {
+                    println!("{}", data.display_with_progress(progress));
                     match term::verdict_prompt().await? {
                         term::VerdictPrompt::Yes => {
                             history.insert(article.clone(), Verdict::Yes);

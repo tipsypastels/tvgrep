@@ -1,3 +1,4 @@
+use crate::progress::{Progress, WithProgress};
 use anyhow::Result;
 use futures::future::maybe_done;
 use std::{fmt, ops::ControlFlow, sync::Arc};
@@ -7,25 +8,27 @@ where
     T: fmt::Debug + 'a,
     I: Iterator<Item = &'a T>,
     Df: AsyncFn(&'a T) -> Result<U>,
-    Rf: AsyncFn(&'a T, U) -> Result<ControlFlow<()>>,
+    Rf: AsyncFn(&'a T, U, Progress) -> Result<ControlFlow<()>>,
 {
     let run_func = Arc::new(run_func);
+
     let mut iter = iter
         .map(|item| (item, Box::pin(maybe_done(download_func(item)))))
+        .with_progress()
         .peekable();
 
-    while let Some((item, mut future)) = iter.next() {
+    while let Some((progress, (item, mut future))) = iter.next() {
         let run_func = run_func.clone();
         let run_current = async move {
             let () = future.as_mut().await;
             let data = future.as_mut().take_output().unwrap()?;
 
-            run_func(item, data).await
+            run_func(item, data, progress).await
         };
 
         let preload_next_item = iter.peek_mut();
         let preload_next = async move {
-            if let Some((_, fut)) = preload_next_item {
+            if let Some((_, (_, fut))) = preload_next_item {
                 fut.await;
             }
             anyhow::Ok(())
