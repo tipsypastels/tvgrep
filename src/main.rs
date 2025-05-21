@@ -87,14 +87,26 @@ async fn main() -> Result<()> {
                 async |article| crawler.article(article, &trope_query).await,
                 async |article, data| {
                     println!("{data}");
-                    match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
-                        "Yes" => {
+                    // match term::prompt(&["Yes", "No", "Skip", "Quit"]).await? {
+                    //     "Yes" => {
+                    //         history.insert(article.clone(), Verdict::Yes);
+                    //     }
+                    //     "No" => {
+                    //         history.insert(article.clone(), Verdict::No);
+                    //     }
+                    //     "Quit" => {
+                    //         return Ok(ControlFlow::Break(()));
+                    //     }
+                    //     _ => {}
+                    // }
+                    match term::verdict_prompt().await? {
+                        term::VerdictPrompt::Yes => {
                             history.insert(article.clone(), Verdict::Yes);
                         }
-                        "No" => {
+                        term::VerdictPrompt::No => {
                             history.insert(article.clone(), Verdict::No);
                         }
-                        "Quit" => {
+                        term::VerdictPrompt::Quit => {
                             return Ok(ControlFlow::Break(()));
                         }
                         _ => {}
