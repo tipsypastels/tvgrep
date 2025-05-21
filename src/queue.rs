@@ -35,7 +35,7 @@ where
             anyhow::Ok(())
         };
 
-        let (cf, _) = tokio::try_join!(run_current, preload_next)?;
+        let (cf, ()) = tokio::try_join!(run_current, preload_next)?;
 
         // not using is_break to help type inference
         if matches!(cf, ControlFlow::<(), ()>::Break(_)) {
