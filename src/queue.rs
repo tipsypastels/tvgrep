@@ -1,11 +1,11 @@
 use crate::progress::Progress;
 use anyhow::Result;
 use futures::future::maybe_done;
-use std::{fmt, ops::ControlFlow, sync::Arc};
+use std::{ops::ControlFlow, sync::Arc};
 
 pub async fn make<'a, T, U, I, Rf, Df>(iter: I, download_func: Df, run_func: Rf) -> Result<()>
 where
-    T: fmt::Debug + 'a,
+    T: 'a,
     I: Iterator<Item = (usize, &'a T)>,
     Df: AsyncFn(&'a T) -> Result<U>,
     Rf: AsyncFn(&'a T, U, Progress) -> Result<ControlFlow<()>>,
