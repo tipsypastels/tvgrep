@@ -67,13 +67,13 @@ async fn main() -> Result<()> {
             interactive,
         } => {
             let related = crawler.related(&article, group.as_ref()).await?;
-            let iter = related.iter().filter(|a| !history.has(a));
+            let iter = related.iter().enumerate().filter(|(_, a)| !history.has(a));
             let trope_query = crawl::trope::Single(&article);
 
             if !interactive {
                 print::print_async(
                     Some(related.len()),
-                    stream::iter(iter).then(|article| {
+                    stream::iter(iter).then(|(_, article)| {
                         let crawler = crawler.clone();
                         async move {
                             let data = crawler.article(article, &trope_query).await;
