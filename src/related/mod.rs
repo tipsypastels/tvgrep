@@ -6,14 +6,14 @@ use crossterm::event::{Event, KeyCode};
 use ratatui::{prelude::*, widgets::ListState};
 
 pub struct RelatedApp {
-    name: ArticleName,
+    orig_article_name: ArticleName,
     list_state: ListState,
 }
 
 impl RelatedApp {
-    pub fn new(name: ArticleName) -> Self {
+    pub fn new(orig_article_name: ArticleName) -> Self {
         Self {
-            name,
+            orig_article_name,
             list_state: ListState::default(),
         }
     }
@@ -37,7 +37,7 @@ impl App for RelatedApp {
     fn render(&mut self, area: Rect, buf: &mut Buffer) {
         render::main(
             RelatedRenderer {
-                name: &self.name,
+                orig_article_name: &self.orig_article_name,
                 list_state: &mut self.list_state,
             },
             area,
@@ -47,6 +47,6 @@ impl App for RelatedApp {
 }
 
 struct RelatedRenderer<'a> {
-    name: &'a ArticleName,
+    orig_article_name: &'a ArticleName,
     list_state: &'a mut ListState,
 }

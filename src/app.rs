@@ -19,7 +19,6 @@ pub trait App {
         let mut quit = false;
 
         while !quit {
-            // self.render(term).await.context("render error")?;
             term.draw(|frame| self.render(frame.area(), frame.buffer_mut()))
                 .context("render error")?;
 
