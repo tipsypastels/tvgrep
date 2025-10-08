@@ -1,8 +1,10 @@
 mod app;
+mod database;
+mod dirs;
 mod name;
 mod related;
 
-use crate::{app::App, name::ArticleName, related::RelatedApp};
+use crate::{app::App, database::Database, dirs::Dirs, name::ArticleName, related::RelatedApp};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
@@ -21,6 +23,9 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+    let dirs = Dirs::new().await?;
+    let db = Database::new(&dirs).await?;
+
     let mut term = ratatui::init();
 
     let res = match cli.command {
