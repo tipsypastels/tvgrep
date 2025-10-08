@@ -2,7 +2,7 @@ mod app;
 mod crawl;
 mod database;
 mod dirs;
-mod loader;
+mod load;
 mod name;
 mod related;
 mod url;
