@@ -1,5 +1,4 @@
 mod app;
-mod event;
 mod name;
 mod related;
 
