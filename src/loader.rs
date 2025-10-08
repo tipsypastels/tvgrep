@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 use tokio::sync::{mpsc, oneshot};
 
-pub struct Loader<T, Ctx> {
+pub struct Loader<Ctx, T> {
     tx: mpsc::UnboundedSender<oneshot::Sender<T>>,
     current_ack: Option<oneshot::Receiver<T>>,
     _ctx: PhantomData<fn() -> Ctx>,
 }
 
-impl<T, Ctx> Loader<T, Ctx> {
+impl<Ctx, T> Loader<Ctx, T> {
     pub fn new<F>(ctx: Ctx, f: fn(&mut Ctx) -> F) -> Self
     where
         F: Future<Output = T> + Send + 'static,
