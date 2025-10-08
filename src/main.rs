@@ -1,6 +1,7 @@
 mod app;
 mod database;
 mod dirs;
+mod loader;
 mod name;
 mod related;
 
