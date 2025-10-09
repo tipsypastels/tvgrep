@@ -582,6 +582,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-fun"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b154205cca25150177cd2233a650db1c02a866074c2e579f1c679a01a7f8fcc"
+dependencies = [
+ "enum-fun-macros",
+]
+
+[[package]]
+name = "enum-fun-macros"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df5e88a8151509062b2958ab840ed5c04209563d4286fc1caf20f4b6bd9fe9fb"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2798,6 +2819,7 @@ dependencies = [
  "clap",
  "crossterm 0.29.0",
  "dirs",
+ "enum-fun",
  "futures",
  "kstring",
  "ratatui",
