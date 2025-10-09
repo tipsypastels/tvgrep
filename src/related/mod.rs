@@ -1,31 +1,27 @@
 mod crawl;
+mod loader;
 mod render;
 
-use self::crawl::RelatedCrawl;
+use self::loader::RelatedLoader;
 use crate::{
     app::App,
     crawl::Crawler,
     database::{Database, Verdict},
-    load::{Load, Loader},
     name::{ArticleName, GroupName},
     render::list::ListStateExt,
-    task::TaskPool,
+    task::Task,
 };
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode};
-use futures::StreamExt;
 use ratatui::{prelude::*, widgets::ListState};
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 pub struct RelatedApp {
     orig_article_name: ArticleName,
     list_state: ListState,
-    list_entries: Vec<RelatedEntry>,
-    list_loader: Loader<RelatedLoad>,
-    list_loader_finished: bool,
-    list_filter_group: Option<GroupName>,
+    list_loader: RelatedLoader,
     modal: Option<RelatedModal>,
-    task_pool: TaskPool<Database, RelatedTask>,
+    tasks: Task<RelatedTask, Database, ()>,
 }
 
 impl RelatedApp {
@@ -33,17 +29,10 @@ impl RelatedApp {
         Self {
             orig_article_name: orig_article_name.clone(),
             list_state: ListState::default(),
-            list_entries: Vec::new(),
-            list_loader: Loader::new(RelatedLoad::new(
-                crawler,
-                database.clone(),
-                orig_article_name,
-            )),
-            list_loader_finished: false,
-            list_filter_group: None,
+            list_loader: RelatedLoader::new(crawler, database.clone(), orig_article_name),
             modal: None,
-            // TODO: Wait for this to finish before quitting.
-            task_pool: TaskPool::new(database, |database, task| async move {
+            tasks: Task::new(database, |task, database| async move {
+                // TODO: How to handle errors?
                 match task {
                     RelatedTask::SetVerdict { name, verdict } => {
                         let _ = database.set_verdict(name, verdict).await;
@@ -58,24 +47,18 @@ impl RelatedApp {
 }
 
 impl App for RelatedApp {
+    async fn on_start(&mut self) -> Result<()> {
+        self.list_loader.on_start();
+        Ok(())
+    }
+
+    async fn on_quit(&mut self) -> Result<()> {
+        self.tasks.close().await;
+        Ok(())
+    }
+
     async fn tick(&mut self) -> Result<()> {
-        if self.list_entries.is_empty()
-            && !self.list_loader.is_loading()
-            && !self.list_loader_finished
-        {
-            self.list_loader.start_loading();
-        }
-
-        if let Some(more_related_articles) = self.list_loader.read() {
-            let more_related_articles = more_related_articles?;
-
-            if more_related_articles.is_empty() {
-                self.list_loader_finished = true;
-            } else {
-                self.list_entries.extend(more_related_articles);
-            }
-        }
-
+        self.list_loader.tick()?;
         Ok(())
     }
 
@@ -96,8 +79,7 @@ impl App for RelatedApp {
             &mut RelatedRenderer {
                 orig_article_name: &self.orig_article_name,
                 list_state: &mut self.list_state,
-                list_entries: &self.list_entries,
-                list_loading: self.list_loader.is_loading(),
+                list_entries: &self.list_loader.entries(),
                 modal: self.modal.as_mut(),
             },
             area,
@@ -121,12 +103,12 @@ impl RelatedApp {
                 None => RelatedTask::UnsetVerdict { name: name.clone() },
             };
 
-            self.task_pool.send(task);
+            self.tasks.run(task);
 
             if let Some(entry) = self
                 .list_state
                 .selected()
-                .and_then(|i| self.list_entries.get_mut(i))
+                .and_then(|i| self.list_loader.entries_mut().get_mut(i))
             {
                 entry.verdict = verdict;
             }
@@ -191,10 +173,8 @@ impl RelatedApp {
                 self.modal = None;
             }
             KeyCode::Enter => {
-                // TODO
-                // self.list_entries = Vec::new();
-                // self.list_loader_finished = false;
-                self.list_filter_group = GroupName::from_str(buffer).ok();
+                self.list_loader
+                    .set_filter_group(GroupName::from_str(buffer).ok());
                 self.modal = None;
             }
             _ => {}
@@ -208,12 +188,12 @@ impl RelatedApp {
             }
             KeyCode::Down => {
                 self.list_state
-                    .select_next_or_first(self.list_entries.len());
+                    .select_next_or_first(self.list_loader.entries().len());
             }
             KeyCode::Char('f') => {
                 self.modal = Some(RelatedModal::SetGroup(
-                    self.list_filter_group
-                        .as_ref()
+                    self.list_loader
+                        .filter_group()
                         .map(|g| g.to_string())
                         .unwrap_or_default(),
                 ));
@@ -237,7 +217,7 @@ impl RelatedApp {
     fn selected_entry(&self) -> Option<&RelatedEntry> {
         self.list_state
             .selected()
-            .and_then(|i| self.list_entries.get(i))
+            .and_then(|i| self.list_loader.entries().get(i))
     }
 }
 
@@ -259,59 +239,9 @@ enum RelatedTask {
     UnsetVerdict { name: ArticleName },
 }
 
-struct RelatedLoad {
-    crawler: Crawler,
-    database: Database,
-    orig_article_name: ArticleName,
-    page: u8,
-}
-
-impl RelatedLoad {
-    fn new(crawler: Crawler, database: Database, orig_article_name: ArticleName) -> Self {
-        Self {
-            crawler,
-            database,
-            orig_article_name,
-            page: 1,
-        }
-    }
-}
-
-impl Load for RelatedLoad {
-    type Output = Result<Vec<RelatedEntry>>;
-
-    async fn load(&mut self) -> Self::Output {
-        let crawl = RelatedCrawl::new(self.orig_article_name.clone(), self.page);
-        let names = self.crawler.crawl(crawl).await?;
-
-        let mut verdicts = self.database.get_verdicts();
-        let verdicts = {
-            let mut out = HashMap::new();
-            while let Some(verdict_entry) = verdicts.next().await {
-                let verdict_entry = verdict_entry?;
-                let name = ArticleName::from_str(&verdict_entry.name)?;
-                out.insert(name, verdict_entry.verdict);
-            }
-            out
-        };
-
-        let out = names
-            .into_iter()
-            .map(|name| {
-                let verdict = verdicts.get(&name).copied();
-                RelatedEntry { name, verdict }
-            })
-            .collect();
-
-        self.page += 1;
-        Ok(out)
-    }
-}
-
 struct RelatedRenderer<'a> {
     orig_article_name: &'a ArticleName,
     list_state: &'a mut ListState,
     list_entries: &'a [RelatedEntry],
-    list_loading: bool,
     modal: Option<&'a mut RelatedModal>,
 }

@@ -1,4 +1,8 @@
-use crate::{crawl::Crawl, name::ArticleName, url::ArticleUrl};
+use crate::{
+    crawl::Crawl,
+    name::{ArticleName, GroupName},
+    url::ArticleUrl,
+};
 use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 use std::{borrow::Cow, sync::LazyLock};
@@ -7,24 +11,18 @@ static LISTING_SEL: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("ul.no-bullets > li > a[href]").unwrap());
 
 pub struct RelatedCrawl {
-    article_name: ArticleName,
-    page: u8,
-}
-
-impl RelatedCrawl {
-    pub fn new(article_name: ArticleName, page: u8) -> Self {
-        Self { article_name, page }
-    }
+    pub article_name: ArticleName,
+    pub group_name: Option<GroupName>,
+    pub page: u8,
 }
 
 impl Crawl for RelatedCrawl {
-    // TODO: Return an iterator wrapper?
     type Output = Vec<ArticleName>;
 
     fn url(&self) -> Cow<str> {
-        // TODO: Allow filtering group.
         self.article_name
             .related_url()
+            .group(self.group_name.as_ref())
             .page(self.page)
             .to_string()
             .into()
