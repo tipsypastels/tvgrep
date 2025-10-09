@@ -27,6 +27,7 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
             )
             .centered(),
         )
+        .title_bottom(Line::styled(" Filter </> Verdict <W> ", Modifier::BOLD).centered())
         .padding(Padding::uniform(1));
 
     StatefulWidget::render(List::new(entries).block(block), area, buf, re.list_state);

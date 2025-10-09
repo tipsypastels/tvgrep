@@ -190,7 +190,7 @@ impl RelatedApp {
                 self.list_state
                     .select_next_or_first(self.list_loader.entries().len());
             }
-            KeyCode::Char('f') => {
+            KeyCode::Char('/') => {
                 self.modal = Some(RelatedModal::SetGroup(
                     self.list_loader
                         .filter_group()
