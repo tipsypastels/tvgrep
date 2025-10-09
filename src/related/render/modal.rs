@@ -3,11 +3,15 @@ use crate::{
     related::{RelatedModal, RelatedRenderer},
     render::modal::Modal,
 };
-use ratatui::{prelude::*, widgets::List};
+use ratatui::{
+    prelude::*,
+    widgets::{List, Paragraph},
+};
 
 pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     match re.modal {
         Some(RelatedModal::SetVerdict { .. }) => set_verdict(re, area, buf),
+        Some(RelatedModal::SetGroup(_)) => set_group(re, area, buf),
         None => {}
     }
 }
@@ -36,5 +40,20 @@ fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
                 buf,
                 list_state,
             );
+        });
+}
+
+fn set_group(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
+    let buffer = match re.modal {
+        Some(RelatedModal::SetGroup(buffer)) => buffer,
+        _ => unreachable!(),
+    };
+
+    Modal::new(area, buf)
+        .title(" Filter Search ")
+        .title_bottom(" Submit <Enter> Close <Esc> ")
+        .screen_percent(40, 20)
+        .render(|area, buf, block| {
+            Paragraph::new(&**buffer).block(block).render(area, buf);
         });
 }

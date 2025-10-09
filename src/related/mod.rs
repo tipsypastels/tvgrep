@@ -7,7 +7,7 @@ use crate::{
     crawl::Crawler,
     database::{Database, Verdict},
     load::{Load, Loader},
-    name::ArticleName,
+    name::{ArticleName, GroupName},
     render::list::ListStateExt,
     task::TaskPool,
 };
@@ -23,6 +23,7 @@ pub struct RelatedApp {
     list_entries: Vec<RelatedEntry>,
     list_loader: Loader<RelatedLoad>,
     list_loader_finished: bool,
+    list_filter_group: Option<GroupName>,
     modal: Option<RelatedModal>,
     task_pool: TaskPool<Database, RelatedTask>,
 }
@@ -39,6 +40,7 @@ impl RelatedApp {
                 orig_article_name,
             )),
             list_loader_finished: false,
+            list_filter_group: None,
             modal: None,
             // TODO: Wait for this to finish before quitting.
             task_pool: TaskPool::new(database, |database, task| async move {
@@ -83,6 +85,7 @@ impl App for RelatedApp {
         };
         match &self.modal {
             Some(RelatedModal::SetVerdict { .. }) => self.handle_set_verdict(code),
+            Some(RelatedModal::SetGroup(_)) => self.handle_set_group(code),
             None => self.handle_main(code, quit),
         }
         Ok(())
@@ -172,6 +175,32 @@ impl RelatedApp {
         }
     }
 
+    fn handle_set_group(&mut self, code: KeyCode) {
+        let buffer = match self.modal.as_mut() {
+            Some(RelatedModal::SetGroup(buffer)) => buffer,
+            _ => unreachable!(),
+        };
+        match code {
+            KeyCode::Backspace => {
+                buffer.pop();
+            }
+            KeyCode::Char(char) => {
+                buffer.push(char);
+            }
+            KeyCode::Esc => {
+                self.modal = None;
+            }
+            KeyCode::Enter => {
+                // TODO
+                // self.list_entries = Vec::new();
+                // self.list_loader_finished = false;
+                self.list_filter_group = GroupName::from_str(buffer).ok();
+                self.modal = None;
+            }
+            _ => {}
+        }
+    }
+
     fn handle_main(&mut self, code: KeyCode, quit: &mut bool) {
         match code {
             KeyCode::Up => {
@@ -180,6 +209,14 @@ impl RelatedApp {
             KeyCode::Down => {
                 self.list_state
                     .select_next_or_first(self.list_entries.len());
+            }
+            KeyCode::Char('f') => {
+                self.modal = Some(RelatedModal::SetGroup(
+                    self.list_filter_group
+                        .as_ref()
+                        .map(|g| g.to_string())
+                        .unwrap_or_default(),
+                ));
             }
             KeyCode::Char('w') => {
                 let Some(article) = self.selected_entry() else {
@@ -209,6 +246,7 @@ enum RelatedModal {
         name: ArticleName,
         list_state: ListState,
     },
+    SetGroup(String),
 }
 
 struct RelatedEntry {
