@@ -10,11 +10,17 @@ pub trait App {
     async fn handle(&mut self, event: TermEvent, quit: &mut bool) -> Result<()>;
     fn render(&mut self, area: Rect, buf: &mut Buffer);
 
+    async fn on_start(&mut self) -> Result<()> {
+        Ok(())
+    }
+
     async fn on_quit(&mut self) -> Result<()> {
         Ok(())
     }
 
     async fn run(&mut self, term: &mut DefaultTerminal) -> Result<()> {
+        self.on_start().await.context("on_start error")?;
+
         let mut events = Events::new();
         let mut quit = false;
 
