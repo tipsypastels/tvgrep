@@ -23,6 +23,13 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
         );
     }
 
+    if re.list.len() > 0 {
+        push!(
+            Span::styled("Loaded: ", Modifier::BOLD),
+            Span::raw(re.list.len().to_string()),
+        );
+    }
+
     match re.list.verdict() {
         VerdictFilter::Eq(verdict) => {
             push!(

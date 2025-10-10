@@ -9,6 +9,7 @@ use ratatui::widgets::ListState;
 pub struct RelatedArticleList {
     state: ListState,
     entries: Vec<RelatedArticleEntry>,
+    len: usize,
     group_name: Option<GroupName>,
     page: u8,
     exhausted: bool,
@@ -27,6 +28,7 @@ impl RelatedArticleList {
         Self {
             state: ListState::default(),
             entries: Vec::new(),
+            len: 0,
             group_name: None,
             page: 1,
             exhausted: false,
@@ -55,11 +57,11 @@ impl RelatedArticleList {
     }
 
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.len
     }
 
     pub fn len_including_virtual(&self) -> usize {
-        self.len() + if self.exhausted { 0 } else { 1 }
+        self.len + if self.exhausted { 0 } else { 1 }
     }
 
     pub fn exhausted(&self) -> bool {
@@ -124,10 +126,12 @@ impl RelatedArticleList {
 
     pub fn loaded(&mut self, entries: Vec<RelatedArticleEntry>) {
         if self.needs_reload {
+            self.len = entries.len();
             self.entries = entries;
             self.needs_reload = false;
         } else {
             self.exhausted = entries.is_empty();
+            self.len += entries.len();
             self.entries.extend(entries);
             self.page += 1;
         }
@@ -146,6 +150,11 @@ impl RelatedArticleList {
     pub fn set_verdict(&mut self, verdict: VerdictFilter) {
         self.verdict = verdict;
         self.state.select(None);
+        self.recalc_len_without_reload();
+    }
+
+    fn recalc_len_without_reload(&mut self) {
+        self.len = self.iter().count()
     }
 }
 
