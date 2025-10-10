@@ -79,7 +79,7 @@ impl App for RelatedApp {
             &mut RelatedRenderer {
                 orig_article_name: &self.orig_article_name,
                 list_state: &mut self.list_state,
-                list_entries: &self.list_loader.entries(),
+                list_entries: self.list_loader.entries(),
                 modal: self.modal.as_mut(),
             },
             area,
