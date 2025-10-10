@@ -10,7 +10,7 @@ pub struct ArticleVerdict {
     pub verdict: Verdict,
 }
 
-#[derive(Name, Variants, Copy, Clone)]
+#[derive(Name, Variants, Copy, Clone, PartialEq)]
 #[name(base = "title case")]
 pub enum Verdict {
     Yes,

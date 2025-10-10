@@ -17,13 +17,12 @@ use crate::{
 use anyhow::Result;
 use crossterm::event::Event;
 use futures::StreamExt;
-use ratatui::{prelude::*, widgets::ListState};
+use ratatui::prelude::*;
 use std::{collections::HashMap, str::FromStr};
 
 pub struct RelatedApp {
     article_name: ArticleName,
     list: RelatedArticleList,
-    list_state: ListState,
     modal: Option<RelatedModal>,
     crawler: Crawler,
     database: Database,
@@ -58,7 +57,6 @@ impl RelatedApp {
         Self {
             article_name: article_name.clone(),
             list: RelatedArticleList::new(),
-            list_state: ListState::default(),
             modal: None,
             crawler,
             database,
@@ -70,7 +68,7 @@ impl App for RelatedApp {
     type Messenger = fn(RelatedMessage, RelatedMessageContext) -> Result<RelatedMessageOkOutput>;
 
     fn on_start(&mut self, mut tx: Tx<Self>) {
-        tx.send(self.list.make_load_message());
+        tx.send(self.list.load());
     }
 
     fn tick(&mut self, _tx: Tx<Self>) -> Result<()> {
@@ -81,8 +79,7 @@ impl App for RelatedApp {
         render::main(
             &mut RelatedRenderer {
                 article_name: &self.article_name,
-                list_entries: self.list.entries(),
-                list_state: &mut self.list_state,
+                list: &mut self.list,
                 modal: self.modal.as_mut(),
                 info,
             },

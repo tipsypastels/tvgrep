@@ -2,13 +2,14 @@ use super::{RelatedModal, RelatedRenderer};
 use crate::{database::Verdict, render::modal::Modal};
 use ratatui::{
     prelude::*,
-    widgets::{List, Paragraph},
+    widgets::{List, ListState, Paragraph},
 };
 
 pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     match re.modal {
         Some(RelatedModal::SetVerdict { .. }) => set_verdict(re, area, buf),
-        Some(RelatedModal::SetGroup { .. }) => set_group(re, area, buf),
+        Some(RelatedModal::FilterVerdict { .. }) => filter_verdict(re, area, buf),
+        Some(RelatedModal::FilterGroup { .. }) => filter_group(re, area, buf),
         None => {}
     }
 }
@@ -46,13 +47,35 @@ fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
         _ => unreachable!(),
     };
 
-    Modal::new(area, buf)
-        .title(format!(" Verdict for {name} "))
+    let modal = Modal::new(area, buf).title(format!(" Set Verdict for {name} "));
+
+    render_verdict_options_modal(modal, ["Unset"], list_state);
+}
+
+fn filter_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
+    let list_state = match re.modal {
+        Some(RelatedModal::FilterVerdict { list_state }) => list_state,
+        _ => unreachable!(),
+    };
+
+    let modal = Modal::new(area, buf)
+        .title(" Filter Verdict ")
+        .screen_percent_y(41);
+
+    render_verdict_options_modal(modal, ["Unset", "None"], list_state);
+}
+
+fn render_verdict_options_modal(
+    modal: Modal,
+    extras: impl IntoIterator<Item = &'static str>,
+    list_state: &mut ListState,
+) {
+    modal
         .title_bottom(" Choose <Enter> Close <Esc> ")
         .render(|area, buf, block| {
             let entries = Verdict::variants()
                 .map(|v| v.name())
-                .chain(std::iter::once("Unset"))
+                .chain(extras)
                 .enumerate()
                 .map(|(i, s)| format!("{}. {s}", i + 1));
 
@@ -67,14 +90,14 @@ fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
         });
 }
 
-fn set_group(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
+fn filter_group(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     let buffer = match re.modal {
-        Some(RelatedModal::SetGroup { buffer }) => buffer,
+        Some(RelatedModal::FilterGroup { buffer }) => buffer,
         _ => unreachable!(),
     };
 
     Modal::new(area, buf)
-        .title(" Filter Search ")
+        .title(" Filter Group ")
         .title_bottom(" Submit <Enter> Close <Esc> ")
         .screen_percent(40, 20)
         .render(|area, buf, block| {

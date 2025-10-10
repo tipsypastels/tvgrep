@@ -1,4 +1,4 @@
-use super::{RelatedApp, RelatedMessage, render::RelatedModal};
+use super::{RelatedApp, RelatedMessage, list::VerdictFilter, render::RelatedModal};
 use crate::{app::Tx, database::Verdict, name::GroupName, render::list::ListStateExt};
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode};
@@ -12,7 +12,8 @@ impl RelatedApp {
         };
         match &self.modal {
             Some(RelatedModal::SetVerdict { .. }) => self.handle_set_verdict(code, tx),
-            Some(RelatedModal::SetGroup { .. }) => self.handle_set_group(code, tx),
+            Some(RelatedModal::FilterVerdict { .. }) => self.handle_filter_verdict(code),
+            Some(RelatedModal::FilterGroup { .. }) => self.handle_filter_group(code, tx),
             None => self.handle_main(code, quit),
         }
         Ok(())
@@ -31,11 +32,7 @@ impl RelatedApp {
                 article_name: article_name.clone(),
                 verdict,
             });
-            if let Some(entry) = self
-                .list_state
-                .selected()
-                .and_then(|i| self.list.get_mut(i))
-            {
+            if let Some(entry) = self.list.selected_mut() {
                 entry.verdict = verdict;
             }
         };
@@ -82,9 +79,68 @@ impl RelatedApp {
         }
     }
 
-    fn handle_set_group(&mut self, code: KeyCode, mut tx: Tx<Self>) {
+    fn handle_filter_verdict(&mut self, code: KeyCode) {
+        let list_state = match self.modal.as_mut() {
+            Some(RelatedModal::FilterVerdict { list_state }) => list_state,
+            _ => unreachable!(),
+        };
+        match code {
+            KeyCode::Up => {
+                list_state.select_prev_or_last();
+            }
+            KeyCode::Down => {
+                list_state.select_next_or_first(Verdict::VARIANT_COUNT + 2);
+            }
+            KeyCode::Esc => {
+                self.modal = None;
+            }
+            KeyCode::Enter => {
+                let Some(selected) = list_state.selected() else {
+                    return;
+                };
+
+                let filter = match selected {
+                    0..Verdict::VARIANT_COUNT => VerdictFilter::Eq(
+                        Verdict::variants()
+                            .enumerate()
+                            .find(|(i, _)| *i == selected)
+                            .expect("invalid verdict")
+                            .1,
+                    ),
+                    Verdict::VARIANT_COUNT => VerdictFilter::Unset,
+                    _ => VerdictFilter::None,
+                };
+
+                self.list.set_verdict(filter);
+                self.modal = None;
+            }
+            KeyCode::Char('1') => {
+                self.list.set_verdict(VerdictFilter::Eq(Verdict::Yes));
+                self.modal = None;
+            }
+            KeyCode::Char('2') => {
+                self.list.set_verdict(VerdictFilter::Eq(Verdict::No));
+                self.modal = None;
+            }
+            KeyCode::Char('3') => {
+                self.list.set_verdict(VerdictFilter::Eq(Verdict::Ignore));
+                self.modal = None;
+            }
+            KeyCode::Char('4') => {
+                self.list.set_verdict(VerdictFilter::Unset);
+                self.modal = None;
+            }
+            KeyCode::Char('5') => {
+                self.list.set_verdict(VerdictFilter::None);
+                self.modal = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_filter_group(&mut self, code: KeyCode, mut tx: Tx<Self>) {
         let buffer = match self.modal.as_mut() {
-            Some(RelatedModal::SetGroup { buffer }) => buffer,
+            Some(RelatedModal::FilterGroup { buffer }) => buffer,
             _ => unreachable!(),
         };
         match code {
@@ -108,13 +164,13 @@ impl RelatedApp {
     fn handle_main(&mut self, code: KeyCode, quit: &mut bool) {
         match code {
             KeyCode::Up => {
-                self.list_state.select_prev_or_last();
+                self.list.select_prev_or_last();
             }
             KeyCode::Down => {
-                self.list_state.select_next_or_first(self.list.len());
+                self.list.select_next_or_first();
             }
-            KeyCode::Char('/') => {
-                self.modal = Some(RelatedModal::SetGroup {
+            KeyCode::Char('g') => {
+                self.modal = Some(RelatedModal::FilterGroup {
                     buffer: self
                         .list
                         .group_name()
@@ -122,8 +178,13 @@ impl RelatedApp {
                         .unwrap_or_default(),
                 })
             }
+            KeyCode::Char('f') => {
+                self.modal = Some(RelatedModal::FilterVerdict {
+                    list_state: ListState::default(),
+                });
+            }
             KeyCode::Char('w') => {
-                let Some(entry) = self.list_state.selected().and_then(|i| self.list.get(i)) else {
+                let Some(entry) = self.list.selected() else {
                     return;
                 };
                 self.modal = Some(RelatedModal::SetVerdict {

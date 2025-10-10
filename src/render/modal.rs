@@ -40,6 +40,16 @@ impl<'a> Modal<'a> {
         self
     }
 
+    pub fn screen_percent_x(mut self, x: u16) -> Self {
+        self.screen_percent.1 = x;
+        self
+    }
+
+    pub fn screen_percent_y(mut self, y: u16) -> Self {
+        self.screen_percent.1 = y;
+        self
+    }
+
     pub fn render(self, f: impl FnOnce(Rect, &mut Buffer, Block)) {
         let area = self.split_area();
         let block = Block::bordered()

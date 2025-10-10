@@ -2,14 +2,13 @@ mod entries;
 mod modal;
 mod status;
 
-use super::list::RelatedArticleEntry;
+use super::list::RelatedArticleList;
 use crate::{app::RenderInfo, name::ArticleName, render::error};
 use ratatui::{prelude::*, widgets::ListState};
 
 pub struct RelatedRenderer<'a> {
     pub article_name: &'a ArticleName,
-    pub list_state: &'a mut ListState,
-    pub list_entries: &'a [RelatedArticleEntry],
+    pub list: &'a mut RelatedArticleList,
     pub modal: Option<&'a mut RelatedModal>,
     pub info: RenderInfo<'a>,
 }
@@ -19,7 +18,10 @@ pub enum RelatedModal {
         article_name: ArticleName,
         list_state: ListState,
     },
-    SetGroup {
+    FilterVerdict {
+        list_state: ListState,
+    },
+    FilterGroup {
         buffer: String,
     },
 }
@@ -39,7 +41,7 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     if re.info.loading {
         if re.info.quitting {
             modal::waiting_to_quit(area, buf);
-        } else if re.list_entries.is_empty() {
+        } else if re.list.never_loaded_any() {
             modal::loading_initial(area, buf);
         }
     }
