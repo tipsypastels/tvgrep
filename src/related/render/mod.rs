@@ -2,8 +2,7 @@ mod entries;
 mod modal;
 
 use super::list::RelatedArticleEntry;
-use crate::{name::ArticleName, render::error};
-use anyhow::Error;
+use crate::{app::RenderInfo, name::ArticleName, render::error};
 use ratatui::{prelude::*, widgets::ListState};
 
 pub struct RelatedRenderer<'a> {
@@ -11,7 +10,7 @@ pub struct RelatedRenderer<'a> {
     pub list_state: &'a mut ListState,
     pub list_entries: &'a [RelatedArticleEntry],
     pub modal: Option<&'a mut RelatedModal>,
-    pub error: Option<&'a Error>,
+    pub info: RenderInfo<'a>,
 }
 
 pub enum RelatedModal {
@@ -32,7 +31,17 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     entries::main(re, cols[1], buf);
     modal::main(re, area, buf);
 
-    if let Some(error) = re.error {
+    // TODO: Display additional loading tick.
+    // https://stackoverflow.com/questions/2685435/cooler-ascii-spinners
+    if re.info.loading {
+        if re.info.quitting {
+            modal::waiting_to_quit(area, buf);
+        } else if re.list_entries.is_empty() {
+            modal::loading_initial(area, buf);
+        }
+    }
+
+    if let Some(error) = re.info.error {
         error::error(error, area, buf);
     }
 }

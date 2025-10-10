@@ -9,12 +9,12 @@ use self::{
     render::{RelatedModal, RelatedRenderer},
 };
 use crate::{
-    app::{App, Messenger},
+    app::{App, RenderInfo, Tx},
     crawl::Crawler,
     database::{Database, Verdict},
     name::{ArticleName, GroupName},
 };
-use anyhow::{Error, Result};
+use anyhow::Result;
 use crossterm::event::Event;
 use futures::StreamExt;
 use ratatui::{prelude::*, widgets::ListState};
@@ -67,40 +67,38 @@ impl RelatedApp {
 }
 
 impl App for RelatedApp {
-    type Message = RelatedMessage;
-    type MessageOutput = Result<RelatedMessageOkOutput>;
-    type MessageContext = RelatedMessageContext;
+    type Messenger = fn(RelatedMessage, RelatedMessageContext) -> Result<RelatedMessageOkOutput>;
 
-    fn on_start(&mut self, messenger: Messenger<Self>) {
-        messenger.send(self.list.make_load_message());
+    fn on_start(&mut self, mut tx: Tx<Self>) {
+        tx.send(self.list.make_load_message());
     }
 
-    fn tick(&mut self, _messenger: Messenger<Self>) -> Result<()> {
+    fn tick(&mut self, _tx: Tx<Self>) -> Result<()> {
         Ok(())
     }
 
-    fn render(&mut self, error: Option<&Error>, area: Rect, buf: &mut Buffer) {
+    fn render(&mut self, info: RenderInfo, area: Rect, buf: &mut Buffer) {
         render::main(
             &mut RelatedRenderer {
                 article_name: &self.article_name,
                 list_entries: self.list.entries(),
                 list_state: &mut self.list_state,
                 modal: self.modal.as_mut(),
-                error,
+                info,
             },
             area,
             buf,
         );
     }
 
-    fn handle(&mut self, event: Event, messenger: Messenger<Self>, quit: &mut bool) -> Result<()> {
-        self.handle_impl(event, messenger, quit)
+    fn handle(&mut self, event: Event, tx: Tx<Self>, quit: &mut bool) -> Result<()> {
+        self.handle_impl(event, tx, quit)
     }
 
     async fn on_message(
-        message: Self::Message,
-        context: Self::MessageContext,
-    ) -> Self::MessageOutput {
+        message: RelatedMessage,
+        context: RelatedMessageContext,
+    ) -> Result<RelatedMessageOkOutput> {
         let RelatedMessageContext {
             article_name,
             crawler,
@@ -157,7 +155,7 @@ impl App for RelatedApp {
         }
     }
 
-    fn apply_message(&mut self, output: Self::MessageOutput) -> Result<()> {
+    fn apply_message(&mut self, output: Result<RelatedMessageOkOutput>) -> Result<()> {
         match output? {
             RelatedMessageOkOutput::Load { entries } => {
                 self.list.loaded(entries);
@@ -167,7 +165,7 @@ impl App for RelatedApp {
         }
     }
 
-    fn new_message_context(&self) -> Self::MessageContext {
+    fn new_message_context(&self) -> RelatedMessageContext {
         RelatedMessageContext {
             article_name: self.article_name.clone(),
             crawler: self.crawler.clone(),

@@ -13,6 +13,30 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     }
 }
 
+pub fn loading_initial(area: Rect, buf: &mut Buffer) {
+    Modal::new(area, buf)
+        .title(" Loading Related... ")
+        .screen_percent(30, 18)
+        .render(|area, buf, block| {
+            Paragraph::new("...")
+                .centered()
+                .block(block)
+                .render(area, buf);
+        });
+}
+
+pub fn waiting_to_quit(area: Rect, buf: &mut Buffer) {
+    Modal::new(area, buf)
+        .title(" Shutting Down ")
+        .screen_percent(30, 18)
+        .render(|area, buf, block| {
+            Paragraph::new("Waiting for jobs to finish...")
+                .centered()
+                .block(block)
+                .render(area, buf);
+        });
+}
+
 fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     let (name, list_state) = match re.modal {
         Some(RelatedModal::SetVerdict {

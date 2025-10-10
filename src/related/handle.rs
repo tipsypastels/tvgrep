@@ -1,29 +1,24 @@
 use super::{RelatedApp, RelatedMessage, render::RelatedModal};
-use crate::{app::Messenger, database::Verdict, name::GroupName, render::list::ListStateExt};
+use crate::{app::Tx, database::Verdict, name::GroupName, render::list::ListStateExt};
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode};
 use ratatui::widgets::ListState;
 use std::str::FromStr;
 
 impl RelatedApp {
-    pub fn handle_impl(
-        &mut self,
-        event: Event,
-        messenger: Messenger<Self>,
-        quit: &mut bool,
-    ) -> Result<()> {
+    pub fn handle_impl(&mut self, event: Event, tx: Tx<Self>, quit: &mut bool) -> Result<()> {
         let Some(code) = event.as_key_press_event().map(|e| e.code) else {
             return Ok(());
         };
         match &self.modal {
-            Some(RelatedModal::SetVerdict { .. }) => self.handle_set_verdict(code, messenger),
-            Some(RelatedModal::SetGroup { .. }) => self.handle_set_group(code, messenger),
+            Some(RelatedModal::SetVerdict { .. }) => self.handle_set_verdict(code, tx),
+            Some(RelatedModal::SetGroup { .. }) => self.handle_set_group(code, tx),
             None => self.handle_main(code, quit),
         }
         Ok(())
     }
 
-    fn handle_set_verdict(&mut self, code: KeyCode, messenger: Messenger<Self>) {
+    fn handle_set_verdict(&mut self, code: KeyCode, mut tx: Tx<Self>) {
         let (article_name, list_state) = match self.modal.as_mut() {
             Some(RelatedModal::SetVerdict {
                 article_name,
@@ -32,7 +27,7 @@ impl RelatedApp {
             _ => unreachable!(),
         };
         let mut set_verdict = |verdict: Option<Verdict>| {
-            messenger.send(RelatedMessage::SetVerdict {
+            tx.send(RelatedMessage::SetVerdict {
                 article_name: article_name.clone(),
                 verdict,
             });
@@ -87,7 +82,7 @@ impl RelatedApp {
         }
     }
 
-    fn handle_set_group(&mut self, code: KeyCode, messenger: Messenger<Self>) {
+    fn handle_set_group(&mut self, code: KeyCode, mut tx: Tx<Self>) {
         let buffer = match self.modal.as_mut() {
             Some(RelatedModal::SetGroup { buffer }) => buffer,
             _ => unreachable!(),
@@ -103,7 +98,7 @@ impl RelatedApp {
                 self.modal = None;
             }
             KeyCode::Enter => {
-                messenger.send(self.list.set_group_name(GroupName::from_str(buffer).ok()));
+                tx.send(self.list.set_group_name(GroupName::from_str(buffer).ok()));
                 self.modal = None;
             }
             _ => {}

@@ -1,43 +1,32 @@
 mod error;
 mod event;
+mod message;
 
 use self::{
     error::Errors,
     event::{Event, Events},
+    message::{Messages, Messenger},
 };
 use anyhow::{Context, Error, Result};
 use crossterm::event::Event as TermEvent;
 use ratatui::{DefaultTerminal, buffer::Buffer, layout::Rect};
 
-type MessengerImpl<A> = (
-    <A as App>::Message,
-    <A as App>::MessageOutput,
-    <A as App>::MessageContext,
-);
-
 pub trait App {
-    type Message: Send + 'static;
-    type MessageOutput: Send + 'static;
-    type MessageContext: Clone + Send + 'static;
+    type Messenger: Messenger;
 
-    fn tick(&mut self, messenger: Messenger<Self>) -> Result<()>;
-    fn render(&mut self, error: Option<&Error>, area: Rect, buf: &mut Buffer);
-    fn handle(
-        &mut self,
-        event: TermEvent,
-        messenger: Messenger<Self>,
-        quit: &mut bool,
-    ) -> Result<()>;
+    fn tick(&mut self, tx: Tx<Self>) -> Result<()>;
+    fn render(&mut self, info: RenderInfo, area: Rect, buf: &mut Buffer);
+    fn handle(&mut self, event: TermEvent, tx: Tx<Self>, quit: &mut bool) -> Result<()>;
 
     fn on_message(
-        message: Self::Message,
-        context: Self::MessageContext,
-    ) -> impl Future<Output = Self::MessageOutput> + Send + 'static;
-    fn apply_message(&mut self, output: Self::MessageOutput) -> Result<()>;
-    fn new_message_context(&self) -> Self::MessageContext;
+        message: <Self::Messenger as Messenger>::Input,
+        context: <Self::Messenger as Messenger>::Context,
+    ) -> impl Future<Output = <Self::Messenger as Messenger>::Output> + Send + 'static;
+    fn apply_message(&mut self, output: <Self::Messenger as Messenger>::Output) -> Result<()>;
+    fn new_message_context(&self) -> <Self::Messenger as Messenger>::Context;
 
-    fn on_start(&mut self, messenger: Messenger<Self>) {
-        let _ = messenger;
+    fn on_start(&mut self, tx: Tx<Self>) {
+        let _ = tx;
     }
 
     fn on_quit(&mut self) {}
@@ -48,15 +37,25 @@ pub trait App {
     }
 
     async fn run(&mut self, term: &mut DefaultTerminal) -> Result<()> {
-        let message_context = self.new_message_context();
-        let mut events = Events::<MessengerImpl<Self>>::new(message_context, Self::on_message);
+        let mut messages = Messages::new(self.new_message_context(), Self::on_message);
+        let mut events = Events::new();
         let mut errors = Errors::new();
         let mut quit = false;
 
-        self.on_start(Messenger(&events));
+        self.on_start(Tx(&mut messages));
+
+        macro_rules! rinfo {
+            ($quitting:expr) => {
+                RenderInfo {
+                    error: errors.peek(),
+                    loading: messages.is_loading(),
+                    quitting: $quitting,
+                }
+            };
+        }
 
         while !quit {
-            term.draw(|frame| self.render(errors.peek(), frame.area(), frame.buffer_mut()))
+            term.draw(|frame| self.render(rinfo!(false), frame.area(), frame.buffer_mut()))
                 .context("render error")?;
 
             let mut catch = |result: Result<()>| match result {
@@ -67,33 +66,47 @@ pub trait App {
                 res => res,
             };
 
-            match events.next().await.context("event loop error")? {
-                Event::Tick => {
-                    catch(self.tick(Messenger(&events)).context("tick error"))?;
-                    errors.tick();
+            tokio::select! {
+                message = messages.next() => {
+                    let message = message.context("message loop error")?;
+                    catch(self.apply_message(message).context("message error"))?;
                 }
-                Event::Term(event) => {
-                    catch(
-                        self.handle(event, Messenger(&events), &mut quit)
-                            .context("event error"),
-                    )?;
-                }
-                Event::MessageOutput(output) => {
-                    catch(self.apply_message(output).context("message error"))?;
+                event = events.next() => {
+                    let event = event.context("event loop error")?;
+                    match event {
+                        Event::Tick => {
+                            catch(self.tick(Tx(&mut messages)).context("tick error"))?;
+                            errors.tick();
+                        },
+                        Event::Term(event) => {
+                            catch(self.handle(event, Tx(&mut messages), &mut quit).context("event error"))?;
+                        }
+                    }
+
                 }
             }
         }
 
-        // TODO: Ensure events are shut down?
+        term.draw(|frame| self.render(rinfo!(true), frame.area(), frame.buffer_mut()))
+            .context("render final frame error")?;
+
+        messages.close().await.context("message close error")?;
         self.on_quit();
+
         Ok(())
     }
 }
 
-pub struct Messenger<'a, A: App + ?Sized>(&'a Events<MessengerImpl<A>>);
+pub struct RenderInfo<'a> {
+    pub error: Option<&'a Error>,
+    pub loading: bool,
+    pub quitting: bool,
+}
 
-impl<A: App> Messenger<'_, A> {
-    pub fn send(&self, message: A::Message) {
-        self.0.send_message(message);
+pub struct Tx<'a, A: App + ?Sized>(&'a mut Messages<A::Messenger>);
+
+impl<A: App> Tx<'_, A> {
+    pub fn send(&mut self, message: <A::Messenger as Messenger>::Input) {
+        self.0.send(message);
     }
 }
