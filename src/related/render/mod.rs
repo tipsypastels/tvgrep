@@ -1,5 +1,6 @@
 mod entries;
 mod modal;
+mod status;
 
 use super::list::RelatedArticleEntry;
 use crate::{app::RenderInfo, name::ArticleName, render::error};
@@ -24,15 +25,17 @@ pub enum RelatedModal {
 }
 
 pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
+    let rows =
+        Layout::vertical([Constraint::Percentage(85), Constraint::Percentage(15)]).split(area);
+
     let cols = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
         .spacing(1)
-        .split(area);
+        .split(rows[0]);
 
     entries::main(re, cols[1], buf);
     modal::main(re, area, buf);
+    status::main(re, rows[1], buf);
 
-    // TODO: Display additional loading tick.
-    // https://stackoverflow.com/questions/2685435/cooler-ascii-spinners
     if re.info.loading {
         if re.info.quitting {
             modal::waiting_to_quit(area, buf);

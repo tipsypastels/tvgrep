@@ -41,12 +41,14 @@ pub trait App {
         let mut events = Events::new();
         let mut errors = Errors::new();
         let mut quit = false;
+        let mut frame_no = 0;
 
         self.on_start(Tx(&mut messages));
 
         macro_rules! rinfo {
             ($quitting:expr) => {
                 RenderInfo {
+                    frame_no,
                     error: errors.peek(),
                     loading: messages.is_loading(),
                     quitting: $quitting,
@@ -85,6 +87,8 @@ pub trait App {
 
                 }
             }
+
+            frame_no = frame_no.wrapping_add(1);
         }
 
         term.draw(|frame| self.render(rinfo!(true), frame.area(), frame.buffer_mut()))
@@ -98,6 +102,7 @@ pub trait App {
 }
 
 pub struct RenderInfo<'a> {
+    pub frame_no: usize,
     pub error: Option<&'a Error>,
     pub loading: bool,
     pub quitting: bool,
