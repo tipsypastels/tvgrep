@@ -11,6 +11,7 @@ pub struct RelatedArticleList {
     entries: Vec<RelatedArticleEntry>,
     group_name: Option<GroupName>,
     page: u8,
+    exhausted: bool,
     verdict: VerdictFilter,
     needs_reload: bool,
     never_loaded_any: bool,
@@ -28,6 +29,7 @@ impl RelatedArticleList {
             entries: Vec::new(),
             group_name: None,
             page: 1,
+            exhausted: false,
             verdict: VerdictFilter::None,
             needs_reload: false,
             never_loaded_any: true,
@@ -56,6 +58,14 @@ impl RelatedArticleList {
         self.iter().count()
     }
 
+    pub fn len_including_virtual(&self) -> usize {
+        self.len() + if self.exhausted { 0 } else { 1 }
+    }
+
+    pub fn exhausted(&self) -> bool {
+        self.exhausted
+    }
+
     pub fn selected(&self) -> Option<&RelatedArticleEntry> {
         self.state.selected().and_then(|i| self.iter().nth(i))
     }
@@ -64,8 +74,24 @@ impl RelatedArticleList {
         self.state.selected().and_then(|i| self.iter_mut().nth(i))
     }
 
+    pub fn selected_idx(&self) -> Option<usize> {
+        self.state.selected()
+    }
+
+    pub fn selected_load_more(&self) -> bool {
+        !self.exhausted && self.state.selected().is_some_and(|i| i == self.len())
+    }
+
     pub fn state(&mut self) -> &mut ListState {
         &mut self.state
+    }
+
+    pub fn select_first(&mut self) {
+        self.state.select_first();
+    }
+
+    pub fn select_last(&mut self) {
+        self.state.select_last();
     }
 
     pub fn select_prev_or_last(&mut self) {
@@ -73,7 +99,8 @@ impl RelatedArticleList {
     }
 
     pub fn select_next_or_first(&mut self) {
-        self.state.select_next_or_first(self.len());
+        self.state
+            .select_next_or_first(self.len_including_virtual());
     }
 
     pub fn group_name(&self) -> Option<&GroupName> {
@@ -100,13 +127,17 @@ impl RelatedArticleList {
             self.entries = entries;
             self.needs_reload = false;
         } else {
+            self.exhausted = entries.is_empty();
             self.entries.extend(entries);
+            self.page += 1;
         }
         self.never_loaded_any = false;
     }
 
     pub fn set_group_name(&mut self, group_name: Option<GroupName>) -> RelatedMessage {
         self.group_name = group_name;
+        self.page = 1;
+        self.exhausted = false;
         self.needs_reload = true;
         self.state.select(None);
         self.load()

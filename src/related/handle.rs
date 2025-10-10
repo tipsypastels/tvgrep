@@ -14,7 +14,7 @@ impl RelatedApp {
             Some(RelatedModal::SetVerdict { .. }) => self.handle_set_verdict(code, tx),
             Some(RelatedModal::FilterVerdict { .. }) => self.handle_filter_verdict(code),
             Some(RelatedModal::FilterGroup { .. }) => self.handle_filter_group(code, tx),
-            None => self.handle_main(code, quit),
+            None => self.handle_main(code, tx, quit),
         }
         Ok(())
     }
@@ -161,13 +161,22 @@ impl RelatedApp {
         }
     }
 
-    fn handle_main(&mut self, code: KeyCode, quit: &mut bool) {
+    fn handle_main(&mut self, code: KeyCode, mut tx: Tx<Self>, quit: &mut bool) {
         match code {
             KeyCode::Up => {
                 self.list.select_prev_or_last();
             }
             KeyCode::Down => {
                 self.list.select_next_or_first();
+            }
+            KeyCode::Home => {
+                self.list.select_first();
+            }
+            KeyCode::End => {
+                self.list.select_last();
+            }
+            KeyCode::Enter if self.list.selected_load_more() => {
+                tx.send(self.list.load());
             }
             KeyCode::Char('g') => {
                 self.modal = Some(RelatedModal::FilterGroup {
