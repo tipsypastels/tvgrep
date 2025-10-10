@@ -1,8 +1,5 @@
-use crate::{
-    database::Verdict,
-    related::{RelatedModal, RelatedRenderer},
-    render::modal::Modal,
-};
+use super::{RelatedModal, RelatedRenderer};
+use crate::{database::Verdict, render::modal::Modal};
 use ratatui::{
     prelude::*,
     widgets::{List, Paragraph},
@@ -11,14 +8,17 @@ use ratatui::{
 pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     match re.modal {
         Some(RelatedModal::SetVerdict { .. }) => set_verdict(re, area, buf),
-        Some(RelatedModal::SetGroup(_)) => set_group(re, area, buf),
+        Some(RelatedModal::SetGroup { .. }) => set_group(re, area, buf),
         None => {}
     }
 }
 
 fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     let (name, list_state) = match re.modal {
-        Some(RelatedModal::SetVerdict { name, list_state }) => (name, list_state),
+        Some(RelatedModal::SetVerdict {
+            article_name: name,
+            list_state,
+        }) => (name, list_state),
         _ => unreachable!(),
     };
 
@@ -45,7 +45,7 @@ fn set_verdict(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
 
 fn set_group(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     let buffer = match re.modal {
-        Some(RelatedModal::SetGroup(buffer)) => buffer,
+        Some(RelatedModal::SetGroup { buffer }) => buffer,
         _ => unreachable!(),
     };
 

@@ -7,7 +7,7 @@ use ratatui::{
 
 pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     let entries = re.list_entries.iter().enumerate().map(|(i, entry)| {
-        let text = entry.name.display_without_main().to_string();
+        let text = entry.article_name.display_without_main().to_string();
         let selected = re.list_state.selected().is_some_and(|i2| i == i2);
         let color = entry.verdict.map(verdict_color);
         let style = if selected {
@@ -20,13 +20,7 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
     });
 
     let block = Block::bordered()
-        .title(
-            Line::styled(
-                format!(" Related: {} ", re.orig_article_name),
-                Modifier::BOLD,
-            )
-            .centered(),
-        )
+        .title(Line::styled(format!(" Related: {} ", re.article_name), Modifier::BOLD).centered())
         .title_bottom(Line::styled(" Filter </> Verdict <W> ", Modifier::BOLD).centered())
         .padding(Padding::uniform(1));
 
