@@ -6,7 +6,10 @@ use scraper::{ElementRef, Html, Selector};
 use std::{borrow::Cow, sync::LazyLock};
 
 static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-article").unwrap());
-static TITLE_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("h1.entry-title").unwrap());
+static TITLE_SEL_TYPE_1: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("h1.entry-title > .wrapped_title").unwrap());
+static TITLE_SEL_TYPE_2: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(".wrapped_title > h1.entry-title strong").unwrap());
 static TROPE_SEL: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("li > a.twikilink:first-child").unwrap());
 
@@ -51,15 +54,20 @@ where
 }
 
 fn get_title(html: &Html) -> Result<&str> {
-    html.select(&TITLE_SEL)
+    let (element, is_type1) = html
+        .select(&TITLE_SEL_TYPE_1)
         .next()
-        .context("no title")?
+        .map(|e| (e, true))
+        .or_else(|| html.select(&TITLE_SEL_TYPE_2).next().map(|e| (e, false)))
+        .context("no title")?;
+    element
         .text()
+        .skip(if is_type1 { 0 } else { 1 })
         .filter_map(|s| {
             let s = s.trim();
             (!s.is_empty()).then_some(s)
         })
-        .next()
+        .last()
         .context("empty title")
 }
 
