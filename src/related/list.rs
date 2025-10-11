@@ -105,10 +105,6 @@ impl RelatedArticleList {
             .select_next_or_first(self.len_including_virtual());
     }
 
-    pub fn select_mapped(&mut self, f: impl FnOnce(usize) -> usize) {
-        self.state.select(self.state.selected().map(f));
-    }
-
     pub fn group_name(&self) -> Option<&GroupName> {
         self.group_name.as_ref()
     }

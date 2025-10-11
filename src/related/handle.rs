@@ -179,14 +179,20 @@ impl RelatedApp {
                 let Some(skip) = self.list_block_inner_height else {
                     return;
                 };
-                self.list.select_mapped(|i| i.saturating_sub(skip));
+                let new_idx = self
+                    .list
+                    .selected_idx()
+                    .map(|i| i.saturating_sub(skip))
+                    .unwrap_or_default();
+                self.list.state().select(Some(new_idx));
             }
             KeyCode::PageDown => {
                 let Some(skip) = self.list_block_inner_height else {
                     return;
                 };
                 let max = self.list.len_including_virtual() - 1;
-                self.list.select_mapped(|i| (i + skip).min(max));
+                let idx = self.list.selected_idx().unwrap_or_default();
+                self.list.state().select(Some((idx + skip).min(max)));
             }
             KeyCode::Enter if self.list.selected_load_more() => {
                 tx.send(self.list.load());
