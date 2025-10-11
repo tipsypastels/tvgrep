@@ -1,13 +1,15 @@
+mod article;
 mod entries;
 mod modal;
 mod status;
 
-use super::list::RelatedArticleList;
+use super::{article::RelatedArticleInfo, list::RelatedArticleList};
 use crate::{app::RenderInfo, name::ArticleName, render::error};
 use ratatui::{prelude::*, widgets::ListState};
 
 pub struct RelatedRenderer<'a> {
     pub article_name: &'a ArticleName,
+    pub article_info: Option<&'a mut RelatedArticleInfo>,
     pub list: &'a mut RelatedArticleList,
     pub modal: Option<&'a mut RelatedModal>,
     pub info: RenderInfo<'a>,
@@ -34,6 +36,7 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
         .spacing(1)
         .split(rows[0]);
 
+    article::main(re, cols[0], buf);
     entries::main(re, cols[1], buf);
     modal::main(re, area, buf);
     status::main(re, rows[1], buf);

@@ -1,27 +1,34 @@
+mod article;
 mod crawl;
 mod handle;
 mod list;
 mod render;
 
 use self::{
+    article::RelatedArticleInfo,
     crawl::RelatedCrawl,
     list::{RelatedArticleEntry, RelatedArticleList},
     render::{RelatedModal, RelatedRenderer},
 };
 use crate::{
     app::{App, RenderInfo, Tx},
-    crawl::Crawler,
+    crawl::{
+        Crawler,
+        article::{ArticleCrawl, ArticleCrawlSingleTrope, ArticleInfo, ArticleSingleTropeBody},
+    },
     database::{Database, Verdict},
     name::{ArticleName, GroupName},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::event::Event;
 use futures::StreamExt;
+use kstring::KString;
 use ratatui::prelude::*;
 use std::{collections::HashMap, str::FromStr};
 
 pub struct RelatedApp {
     article_name: ArticleName,
+    article_info: Option<RelatedArticleInfo>,
     list: RelatedArticleList,
     modal: Option<RelatedModal>,
     crawler: Crawler,
@@ -34,14 +41,25 @@ pub enum RelatedMessage {
         group_name: Option<GroupName>,
         page: u8,
     },
+    LoadArticleInfo {
+        article_name: ArticleName,
+    },
     SetVerdict {
         article_name: ArticleName,
         verdict: Option<Verdict>,
     },
+    OpenUrlInBrowser {
+        url: KString,
+    },
 }
 
 pub enum RelatedMessageOkOutput {
-    Load { entries: Vec<RelatedArticleEntry> },
+    LoadRelated {
+        entries: Vec<RelatedArticleEntry>,
+    },
+    LoadArticleInfo {
+        article_info: ArticleInfo<ArticleSingleTropeBody>,
+    },
     Void,
 }
 
@@ -56,6 +74,7 @@ impl RelatedApp {
     pub fn new(crawler: Crawler, database: Database, article_name: ArticleName) -> Self {
         Self {
             article_name: article_name.clone(),
+            article_info: None,
             list: RelatedArticleList::new(),
             modal: None,
             crawler,
@@ -79,6 +98,7 @@ impl App for RelatedApp {
         render::main(
             &mut RelatedRenderer {
                 article_name: &self.article_name,
+                article_info: self.article_info.as_mut(),
                 list: &mut self.list,
                 modal: self.modal.as_mut(),
                 info,
@@ -133,7 +153,18 @@ impl App for RelatedApp {
                     })
                     .collect();
 
-                Ok(RelatedMessageOkOutput::Load { entries })
+                Ok(RelatedMessageOkOutput::LoadRelated { entries })
+            }
+            RelatedMessage::LoadArticleInfo {
+                article_name: crawled_article_name,
+            } => {
+                let article_info = crawler
+                    .crawl(ArticleCrawl {
+                        article_name: crawled_article_name,
+                        crawl_body: ArticleCrawlSingleTrope(article_name),
+                    })
+                    .await?;
+                Ok(RelatedMessageOkOutput::LoadArticleInfo { article_info })
             }
             RelatedMessage::SetVerdict {
                 article_name,
@@ -149,13 +180,29 @@ impl App for RelatedApp {
                 database.unset_verdict(article_name).await?;
                 Ok(RelatedMessageOkOutput::Void)
             }
+            RelatedMessage::OpenUrlInBrowser { url } => {
+                let mut command: tokio::process::Command = open::commands(url)
+                    .drain(..)
+                    .next()
+                    .context("could not open in browser")?
+                    .into();
+
+                let status = command.status().await?;
+                anyhow::ensure!(status.success(), "failed to open in browser");
+
+                Ok(RelatedMessageOkOutput::Void)
+            }
         }
     }
 
     fn apply_message(&mut self, output: Result<RelatedMessageOkOutput>) -> Result<()> {
         match output? {
-            RelatedMessageOkOutput::Load { entries } => {
+            RelatedMessageOkOutput::LoadRelated { entries } => {
                 self.list.loaded(entries);
+                Ok(())
+            }
+            RelatedMessageOkOutput::LoadArticleInfo { article_info } => {
+                self.article_info = Some(RelatedArticleInfo::new(article_info));
                 Ok(())
             }
             RelatedMessageOkOutput::Void => Ok(()),

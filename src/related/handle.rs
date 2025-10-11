@@ -178,6 +178,20 @@ impl RelatedApp {
             KeyCode::Enter if self.list.selected_load_more() => {
                 tx.send(self.list.load());
             }
+            KeyCode::Enter => {
+                let Some(entry) = self.list.selected() else {
+                    return;
+                };
+                tx.send(RelatedMessage::LoadArticleInfo {
+                    article_name: entry.article_name.clone(),
+                });
+            }
+            KeyCode::Esc if self.article_info.is_some() => {
+                self.article_info = None;
+            }
+            KeyCode::Esc => {
+                *quit = true;
+            }
             KeyCode::Char('g') => {
                 self.modal = Some(RelatedModal::FilterGroup {
                     buffer: self
@@ -200,6 +214,14 @@ impl RelatedApp {
                     article_name: entry.article_name.clone(),
                     list_state: ListState::default(),
                 })
+            }
+            KeyCode::Char('o') => {
+                let Some(article_info) = self.article_info.as_ref() else {
+                    return;
+                };
+                tx.send(RelatedMessage::OpenUrlInBrowser {
+                    url: article_info.url().clone(),
+                });
             }
             KeyCode::Char('q') => {
                 *quit = true;

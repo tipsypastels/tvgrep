@@ -28,7 +28,7 @@ impl Crawl for RelatedCrawl {
             .into()
     }
 
-    fn crawl(&self, html: Html) -> Result<Self::Output> {
+    fn crawl(&self, _url: Cow<str>, html: Html) -> Result<Self::Output> {
         html.select(&LISTING_SEL)
             .map(|link| {
                 let url = link.attr("href").context("link has no href")?;

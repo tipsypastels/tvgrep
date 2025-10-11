@@ -1,3 +1,5 @@
+pub mod article;
+
 use anyhow::{Context, Result};
 use reqwest::Client;
 use scraper::Html;
@@ -7,7 +9,7 @@ pub trait Crawl {
     type Output;
 
     fn url(&self) -> Cow<str>;
-    fn crawl(&self, html: Html) -> Result<Self::Output>;
+    fn crawl(&self, url: Cow<str>, html: Html) -> Result<Self::Output>;
 }
 
 #[derive(Clone)]
@@ -30,6 +32,6 @@ impl Crawler {
         let text = response.text().await?;
         let html = Html::parse_document(&text);
 
-        crawl.crawl(html)
+        crawl.crawl(url, html)
     }
 }
