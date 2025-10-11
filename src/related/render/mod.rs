@@ -11,6 +11,7 @@ pub struct RelatedRenderer<'a> {
     pub article_name: &'a ArticleName,
     pub article_info: Option<&'a mut RelatedArticleInfo>,
     pub list: &'a mut RelatedArticleList,
+    pub list_block_inner_height: &'a mut Option<usize>,
     pub modal: Option<&'a mut RelatedModal>,
     pub info: RenderInfo<'a>,
 }

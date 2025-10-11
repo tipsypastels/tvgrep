@@ -175,6 +175,19 @@ impl RelatedApp {
             KeyCode::End => {
                 self.list.select_last();
             }
+            KeyCode::PageUp => {
+                let Some(skip) = self.list_block_inner_height else {
+                    return;
+                };
+                self.list.select_mapped(|i| i.saturating_sub(skip));
+            }
+            KeyCode::PageDown => {
+                let Some(skip) = self.list_block_inner_height else {
+                    return;
+                };
+                let max = self.list.len_including_virtual() - 1;
+                self.list.select_mapped(|i| (i + skip).min(max));
+            }
             KeyCode::Enter if self.list.selected_load_more() => {
                 tx.send(self.list.load());
             }

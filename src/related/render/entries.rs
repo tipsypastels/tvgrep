@@ -51,6 +51,8 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
 
     StatefulWidget::render(List::new(entries).block(block), area, buf, re.list.state());
     StatefulWidget::render(scrollbar, scrollbar_area, buf, &mut scrollbar_state);
+
+    *re.list_block_inner_height = Some(scrollbar_area.height as _);
 }
 
 fn verdict_color(verdict: Verdict) -> Color {
