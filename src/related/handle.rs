@@ -251,6 +251,12 @@ impl RelatedApp {
                     list_state: ListState::default(),
                 })
             }
+            KeyCode::Char('t') => {
+                let Some(article_info) = self.article_info.as_mut() else {
+                    return;
+                };
+                article_info.toggle_tab();
+            }
             KeyCode::Char('o') => {
                 let Some(article_info) = self.article_info.as_ref() else {
                     return;
@@ -259,6 +265,7 @@ impl RelatedApp {
                     url: article_info.url().clone(),
                 });
             }
+
             KeyCode::Char('q') => {
                 *quit = true;
             }
