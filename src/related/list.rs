@@ -1,3 +1,4 @@
+use self::computed_len::ComputedLen;
 use super::RelatedMessage;
 use crate::{
     database::Verdict,
@@ -9,7 +10,7 @@ use ratatui::widgets::ListState;
 pub struct RelatedArticleList {
     state: ListState,
     entries: Vec<RelatedArticleEntry>,
-    len: usize,
+    len: ComputedLen,
     group_name: Option<GroupName>,
     page: u8,
     exhausted: bool,
@@ -28,7 +29,7 @@ impl RelatedArticleList {
         Self {
             state: ListState::default(),
             entries: Vec::new(),
-            len: 0,
+            len: ComputedLen::new(),
             group_name: None,
             page: 1,
             exhausted: false,
@@ -57,11 +58,11 @@ impl RelatedArticleList {
     }
 
     pub fn len(&self) -> usize {
-        self.len
+        self.len.into_inner()
     }
 
     pub fn len_including_virtual(&self) -> usize {
-        self.len + if self.exhausted { 0 } else { 1 }
+        self.len() + if self.exhausted { 0 } else { 1 }
     }
 
     pub fn exhausted(&self) -> bool {
@@ -126,15 +127,14 @@ impl RelatedArticleList {
 
     pub fn loaded(&mut self, entries: Vec<RelatedArticleEntry>) {
         if self.needs_reload {
-            self.len = entries.len();
             self.entries = entries;
             self.needs_reload = false;
         } else {
             self.exhausted = entries.is_empty();
-            self.len += entries.len();
             self.entries.extend(entries);
             self.page += 1;
         }
+        self.recalc_len();
         self.never_loaded_any = false;
     }
 
@@ -150,11 +150,35 @@ impl RelatedArticleList {
     pub fn set_verdict(&mut self, verdict: VerdictFilter) {
         self.verdict = verdict;
         self.state.select(None);
-        self.recalc_len_without_reload();
+        self.recalc_len();
     }
 
-    fn recalc_len_without_reload(&mut self) {
-        self.len = self.iter().count()
+    fn recalc_len(&mut self) {
+        let count = self.iter().count();
+        let promise = computed_len::IPromiseIAmSettingThisFromIterCount;
+        self.len.set(count, promise);
+    }
+}
+
+mod computed_len {
+    #[derive(Copy, Clone)]
+    #[repr(transparent)]
+    pub struct ComputedLen(usize);
+
+    pub struct IPromiseIAmSettingThisFromIterCount;
+
+    impl ComputedLen {
+        pub fn new() -> Self {
+            Self(0)
+        }
+
+        pub fn into_inner(self) -> usize {
+            self.0
+        }
+
+        pub fn set(&mut self, count: usize, _: IPromiseIAmSettingThisFromIterCount) {
+            self.0 = count;
+        }
     }
 }
 
