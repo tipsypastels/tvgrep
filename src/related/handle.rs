@@ -162,12 +162,34 @@ impl RelatedApp {
     }
 
     fn handle_main(&mut self, code: KeyCode, mut tx: Tx<Self>, quit: &mut bool) {
+        macro_rules! load_article_info {
+            () => {
+                let Some(entry) = self.list.selected() else {
+                    return;
+                };
+                tx.send(RelatedMessage::LoadArticleInfo {
+                    article_name: entry.article_name.clone(),
+                });
+            };
+        }
         match code {
             KeyCode::Up => {
                 self.list.select_prev_or_last();
             }
             KeyCode::Down => {
                 self.list.select_next_or_first();
+            }
+            KeyCode::Left => {
+                self.list.select_prev_or_last();
+                if self.article_info.is_some() {
+                    load_article_info!();
+                }
+            }
+            KeyCode::Right => {
+                self.list.select_next_or_first();
+                if self.article_info.is_some() {
+                    load_article_info!();
+                }
             }
             KeyCode::Home => {
                 self.list.select_first();
@@ -198,12 +220,7 @@ impl RelatedApp {
                 tx.send(self.list.load());
             }
             KeyCode::Enter => {
-                let Some(entry) = self.list.selected() else {
-                    return;
-                };
-                tx.send(RelatedMessage::LoadArticleInfo {
-                    article_name: entry.article_name.clone(),
-                });
+                load_article_info!();
             }
             KeyCode::Esc if self.article_info.is_some() => {
                 self.article_info = None;
