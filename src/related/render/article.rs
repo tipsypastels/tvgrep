@@ -10,14 +10,32 @@ pub fn main(re: &mut RelatedRenderer, area: Rect, buf: &mut Buffer) {
         return;
     };
 
+    let (title_span_summary_tab, title_span_trope_tab) = match article_info.tab() {
+        RelatedArticleInfoTab::Summary => (
+            Span::styled("Summary", Style::new().black().on_white()),
+            Span::raw("Trope"),
+        ),
+        RelatedArticleInfoTab::Trope => (
+            Span::raw("Summary"),
+            Span::styled("Trope", Style::new().black().on_white()),
+        ),
+    };
+
+    let title = Line::from(vec![
+        Span::styled(
+            format!(" Viewing: {} ", article_info.article_name()),
+            Modifier::BOLD,
+        ),
+        Span::raw("("),
+        title_span_summary_tab,
+        Span::raw("/"),
+        title_span_trope_tab,
+        Span::raw(")"),
+    ])
+    .centered();
+
     let block = Block::bordered()
-        .title(
-            Line::styled(
-                format!(" Viewing: {} ", article_info.article_name()),
-                Modifier::BOLD,
-            )
-            .centered(),
-        )
+        .title(title)
         .title_bottom(Line::styled(" Toggle <T> Open <O> ", Modifier::BOLD).centered())
         .padding(Padding::uniform(1));
 
