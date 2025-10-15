@@ -7,6 +7,7 @@ const RELATIVE_ARTICLE_URL_BASE: &str = "/pmwiki/pmwiki.php/";
 
 pub trait ArticleUrl: Sized {
     fn url(&self) -> String;
+    fn relative_url(&self) -> String;
     fn related_url(&self) -> ArticleRelatedUrlBuilder;
 
     fn from_relative_url(url: &str) -> Result<Self>;
@@ -16,6 +17,10 @@ pub trait ArticleUrl: Sized {
 impl ArticleUrl for ArticleName {
     fn url(&self) -> String {
         format!("{PMWIKI_BASE}/pmwiki.php/{self}")
+    }
+
+    fn relative_url(&self) -> String {
+        format!("/pmwiki/pmwiki.php/{self}")
     }
 
     fn related_url(&self) -> ArticleRelatedUrlBuilder {

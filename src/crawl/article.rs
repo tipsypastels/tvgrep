@@ -3,15 +3,15 @@ use crate::{name::ArticleName, url::ArticleUrl};
 use anyhow::{Context, Result};
 use kstring::KString;
 use scraper::{ElementRef, Html, Selector};
-use std::{borrow::Cow, sync::LazyLock};
+use std::{borrow::Cow, ops::Range, sync::LazyLock};
 
 static MAIN_SEL: LazyLock<Selector> = LazyLock::new(|| Selector::parse("#main-article").unwrap());
 static TITLE_SEL_TYPE_1: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse("h1.entry-title > .wrapped_title").unwrap());
 static TITLE_SEL_TYPE_2: LazyLock<Selector> =
     LazyLock::new(|| Selector::parse(".wrapped_title > h1.entry-title strong").unwrap());
-static TROPE_SEL: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("li > a.twikilink:first-child").unwrap());
+static FIRST_A_SEL: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("a.twikilink:first-of-type").unwrap());
 
 pub struct ArticleInfo<Body> {
     pub url: KString,
@@ -104,47 +104,95 @@ pub trait ArticleCrawlBody {
 
 pub struct ArticleCrawlSingleTrope(pub ArticleName);
 
-// TODO: Generalize to find links anywhere, make this an enum.
-pub struct ArticleSingleTropeBody {
-    pub article_name: ArticleName,
-    pub text: Option<KString>,
+pub enum ArticleSingleTropeBody {
+    TopLevel {
+        article_name: ArticleName,
+        text: KString,
+    },
+    InOther {
+        other_article_name: ArticleName,
+        text: KString,
+        own_article_url_range: Option<Range<usize>>,
+    },
+    Elsewhere {
+        nearest_block_parent_text: KString,
+        url_range: Option<Range<usize>>,
+    },
 }
 
+// TODO: Figure out why spacing is sometimes missing around non-highlighted trope links?
 impl ArticleCrawlBody for ArticleCrawlSingleTrope {
     type Body = ArticleSingleTropeBody;
 
     fn crawl_body(&self, html: &Html) -> Result<Self::Body> {
-        let Some(trope_node) = html.select(&TROPE_SEL).find(|node| {
-            node.attr("href")
-                .is_some_and(|url| self.0.matches_relative_url(url))
-        }) else {
-            return Ok(ArticleSingleTropeBody {
-                article_name: self.0.clone(),
-                text: None,
+        let a_sel_string = format!("a.twikilink[href=\"{}\"]", self.0.relative_url());
+        let a_sel = Selector::parse(&a_sel_string).unwrap();
+        let a = html.select(&a_sel).next().context("missing trope")?;
+
+        let a_text_range = |in_text: &KString| {
+            let a_text = a.text().collect::<String>();
+            in_text.find(&a_text).map(|n| n..(n + a_text.len()))
+        };
+
+        if let Some((li, first_a)) = a
+            .ancestors()
+            .find_map(|node| {
+                let element = ElementRef::wrap(node)?;
+                (element.value().name() == "li").then_some(element)
+            })
+            .and_then(|li| {
+                let first_a = li.select(&FIRST_A_SEL).next()?;
+                Some((li, first_a))
+            })
+        {
+            let text = li
+                .text()
+                .filter(|s| !s.trim().is_empty())
+                .enumerate()
+                .map(|(i, s)| {
+                    if i == 1 {
+                        s.strip_prefix(": ").unwrap_or(s)
+                    } else {
+                        s
+                    }
+                })
+                .skip(1) // skip trope name
+                .collect::<String>()
+                .into();
+
+            if a == first_a {
+                return Ok(ArticleSingleTropeBody::TopLevel {
+                    article_name: self.0.clone(),
+                    text,
+                });
+            }
+
+            let first_a_href = first_a.attr("href").context("first a missing href")?;
+            let other_article_name = ArticleName::from_relative_url(first_a_href)?;
+            let own_article_url_range = a_text_range(&text);
+
+            return Ok(ArticleSingleTropeBody::InOther {
+                other_article_name,
+                text,
+                own_article_url_range,
             });
         };
 
-        let li_node = trope_node.parent().context("trope_node lacks parent")?;
-        let li_node = ElementRef::wrap(li_node).context("trope_node lacks parent")?;
-        let li_node_text = li_node
-            .text()
-            .filter(|s| !s.trim().is_empty())
-            .enumerate()
-            .map(|(i, s)| {
-                if i == 1 {
-                    s.strip_prefix(": ").unwrap_or(s)
-                } else {
-                    s
-                }
+        let nearest_block_parent = a
+            .ancestors()
+            .find_map(|node| {
+                let element = ElementRef::wrap(node)?;
+                // Add more block elements if they're needed.
+                matches!(element.value().name(), "li" | "p" | "div").then_some(element)
             })
-            .skip(1) // skip trope name
-            .collect::<String>();
+            .context("could not find block parent of a")?;
 
-        let text = Some(KString::from_string(li_node_text));
+        let nearest_block_parent_text = nearest_block_parent.text().collect::<String>().into();
+        let url_range = a_text_range(&nearest_block_parent_text);
 
-        Ok(ArticleSingleTropeBody {
-            article_name: self.0.clone(),
-            text,
+        Ok(ArticleSingleTropeBody::Elsewhere {
+            nearest_block_parent_text,
+            url_range,
         })
     }
 }
